@@ -135,13 +135,16 @@ const PATTERNS = {
 };
 // practice patterns: every hit sits on a whole beat
 PATTERNS.two    = { name:'咚 锵',     hits:[[0,'d'],[1,'q']] };
-PATTERNS.threeq = { name:'咚 咚 锵',  hits:[[0,'d'],[1,'d'],[2,'q']] };
+PATTERNS.one.span = 1; PATTERNS.three.span = 2; PATTERNS.five.span = 4;
+PATTERNS.threeq = { name:'咚 咚 锵',  hits:[[0,'d'],[1,'d'],[2,'q']], span:3 };
+PATTERNS.two.span = 2;
 const HITS_LABEL = { one:'1下', two:'2下', threeq:'3下', three:'咚咚锵', five:'5下' };
 const ROUNDS_HARD = ['one','one','three','three','five','five'];
 const rounds = () => G.L.rounds;
 // how "full" the backing groove is (0..2), grows through the song
 const secOf = r => Math.min(2, Math.floor(r*3/rounds().length));
 const WIN_P = 0.12, WIN_G = 0.25;
+const BPM = 100;
 const CALL_STEP = 2.0, CRAWL = 0.5, VSCALE = 1.7, VGAP = 2.4;
 
 /* ---------------- sizing & camera ---------------- */
@@ -249,18 +252,18 @@ const sfx = {
 const WEASEL = { kind:'weasel', x:3.6, amp:0, freq:0 };
 const LEVELS = [
   // practice: two or three simple rhythms, slow tempo, villain stands still
-  { group:'练习', name:'第一关', sub:'1下 和 2下', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}], bpm:96,
+  { group:'练习', name:'第一关', sub:'1下 和 2下', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}], bpm:BPM,
     rounds:['one','one','two','two','one','two','one','two'] },
-  { group:'练习', name:'第二关', sub:'1下 和 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-3.2, amp:0, freq:0 }, others:[{kind:'hen', x:4.2}, {kind:'pole', x:-8.2}], bpm:100,
+  { group:'练习', name:'第二关', sub:'1下 和 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-3.2, amp:0, freq:0 }, others:[{kind:'hen', x:4.2}, {kind:'pole', x:-8.2}], bpm:BPM,
     rounds:['one','one','threeq','threeq','one','threeq','one','threeq'] },
-  { group:'练习', name:'第三关', sub:'2下 和 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:2.4, amp:0, freq:0 }, others:[{kind:'hen', x:-5.2}, {kind:'pole', x:7.6}], bpm:100,
+  { group:'练习', name:'第三关', sub:'2下 和 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:2.4, amp:0, freq:0 }, others:[{kind:'hen', x:-5.2}, {kind:'pole', x:7.6}], bpm:BPM,
     rounds:['two','two','threeq','threeq','two','threeq','two','threeq'] },
-  { group:'练习', name:'第四关', sub:'1下 2下 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-1.8, amp:0, freq:0 }, others:[{kind:'hen', x:5.4}, {kind:'pole', x:-8.4}], bpm:104,
+  { group:'练习', name:'第四关', sub:'1下 2下 3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-1.8, amp:0, freq:0 }, others:[{kind:'hen', x:5.4}, {kind:'pole', x:-8.4}], bpm:BPM,
     rounds:['one','two','threeq','one','two','threeq','two','threeq'] },
   // challenge: the original three
-  { group:'挑战', name:'第五关', sub:'咚咚锵 · 慢', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}], bpm:96, rounds:ROUNDS_HARD },
-  { group:'挑战', name:'第六关', sub:'咚咚锵 · 快', villainName:'偷鱼野猫', victim:'bird', victimName:'小鸟', villain:{kind:'cat', x:-2.4, amp:2.2, freq:0.3}, others:[{kind:'pole', x:-8.6}, {kind:'hen', x:4.6}, {kind:'hen', x:7.4}], bpm:104, rounds:ROUNDS_HARD },
-  { group:'挑战', name:'第七关', sub:'咚咚锵 · 最快', villainName:'窜地田鼠', villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}], bpm:112, rounds:ROUNDS_HARD },
+  { group:'挑战', name:'第五关', sub:'咚咚锵', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}], bpm:BPM, rounds:ROUNDS_HARD },
+  { group:'挑战', name:'第六关', sub:'咚咚锵 · 野猫会跑', villainName:'偷鱼野猫', victim:'bird', victimName:'小鸟', villain:{kind:'cat', x:-2.4, amp:2.2, freq:0.3}, others:[{kind:'pole', x:-8.6}, {kind:'hen', x:4.6}, {kind:'hen', x:7.4}], bpm:BPM, rounds:ROUNDS_HARD },
+  { group:'挑战', name:'第七关', sub:'咚咚锵 · 田鼠乱窜', villainName:'窜地田鼠', villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}], bpm:BPM, rounds:ROUNDS_HARD },
 ];
 let best = {};
 try { best = JSON.parse(localStorage.getItem('tdlp-rhythm-best7') || '{}') || {}; } catch(e){ best = {}; }
@@ -279,7 +282,7 @@ function newGame(i, phase){
     beat, bar:beat*4, t0:0, useAC:false, songStarted:false,
     tips:[], segs:[], idc:1, main:null, mainSet:new Set(),
     objs:[v, victim, ...L.others.map(o => Object.assign({}, o, { state:'idle', dir:1 }))],
-    calls:[], resps:[], aev:[], ci:0, ai:0, curBar:-1, inResp:false, respCam:null,
+    calls:[], resps:[], aev:[], ci:0, ai:0, curSeg:-2, inResp:false, respCam:null,
     level:0, tint:0, warm:0, levelBars:[0,0,0],
     perfect:0, good:0, miss:0, wrong:0, combo:0, maxCombo:0, cueFlash:0,
     selected:false, parts:[], texts:[], flash:0, shake:0, pulse:0, lb:0,
@@ -303,31 +306,31 @@ function tapClock(){
   return clock() - lat;
 }
 function buildSong(){
-  const b = G.bar, bt = G.beat;
-  G.calls = []; G.resps = []; G.aev = [];
+  const bt = G.beat;
+  G.calls = []; G.resps = []; G.aev = []; G.segs2 = [];
+  let cur = 4;                                     // beats; 0..3 = count-in
   rounds().forEach((pk, r) => {
-    const cb = (1 + 2*r)*b, rb = (2 + 2*r)*b;
-    PATTERNS[pk].hits.forEach(([h, type], i) => {
-      G.calls.push({ t:cb + h*bt, type, r, i });
-      G.resps.push({ t:rb + h*bt, type, r, i, done:false, res:null });
-      G.aev.push({ t:cb + h*bt, f:type === 'd' ? 'dong' : 'qiang' });
+    const P = PATTERNS[pk], cs = cur, rs = cur + P.span;
+    G.segs2.push({ r, kind:'call', a:cs, b:rs }, { r, kind:'resp', a:rs, b:rs + P.span });
+    P.hits.forEach(([h, type], i) => {
+      G.calls.push({ t:(cs + h)*bt, type, r, i });
+      G.resps.push({ t:(rs + h)*bt, type, r, i, done:false, res:null });
+      G.aev.push({ t:(cs + h)*bt, f:type === 'd' ? 'dong' : 'qiang' });
     });
+    cur = rs + P.span;
   });
-  const walk = [55, 55, 65.4, 73.4, 82.4, 73.4, 65.4, 55];   // A C D E pentatonic walk
-  const totalBars = 1 + 2*rounds().length;
-  for (let bar = 0; bar < totalBars; bar++){
-    const t = bar*b;
-    if (bar === 0){ for (let k = 0; k < 4; k++) G.aev.push({ t:t + k*bt, f:'stick', a:k === 0 }); continue; }
-    const r = Math.floor((bar - 1)/2), sec = secOf(r), isCall = (bar - 1) % 2 === 0;
-    G.aev.push({ t, f:'kick', a:1 }); G.aev.push({ t:t + 2*bt, f:'kick', a:0.85 });
-    if (sec >= 1) G.aev.push({ t:t + 2.5*bt, f:'kick', a:0.6 });
-    G.aev.push({ t:t + bt, f:'clap' }); G.aev.push({ t:t + 3*bt, f:'clap' });
-    if (sec >= 1) for (let k = 0; k < 8; k++) G.aev.push({ t:t + k*bt/2, f:'hat', a:k % 2 ? 0.05 : 0.09 });
-    if (sec >= 1){ const root = walk[r % walk.length]; [[0, 1], [1.5, 1], [2, 1.5], [3, 1.335]].forEach(([o, m]) => G.aev.push({ t:t + o*bt, f:'bass', a:root*m*2 })); }
-    if (sec >= 2 && !isCall) G.aev.push({ t:t + 3.5*bt, f:'smallGong' });
+  const walk = [55, 65.4, 73.4, 82.4, 73.4, 65.4];   // A C D E pentatonic walk, one note per 2 beats
+  for (let k = 0; k < cur; k++){
+    const t = k*bt;
+    if (k < 4){ G.aev.push({ t, f:'stick', a:k === 0 }); continue; }
+    const seg = G.segs2.find(sg => k >= sg.a && k < sg.b), sec = seg ? secOf(seg.r) : 0;
+    if (k % 2 === 0) G.aev.push({ t, f:'kick', a:1 }); else G.aev.push({ t, f:'clap' });
+    if (sec >= 1){ G.aev.push({ t, f:'hat', a:0.09 }); G.aev.push({ t:t + bt/2, f:'hat', a:0.05 }); }
+    if (sec >= 1 && k % 2 === 0) G.aev.push({ t, f:'bass', a:walk[(k/2) % walk.length]*2 });
+    if (sec >= 2 && k % 2 === 1) G.aev.push({ t:t + bt/2, f:'kick', a:0.55 });
   }
   G.aev.sort((a, b2) => a.t - b2.t);
-  G.landT = totalBars*b;
+  G.landT = cur*bt;
 }
 function scheduleAudio(now){
   if (!G.useAC) return;
@@ -341,11 +344,10 @@ function scheduleAudio(now){
   }
 }
 function barInfo(now){
-  const bar = Math.floor(now/G.bar);
-  if (bar < 1) return { bar, kind:'count', r:-1 };
-  if (bar >= 1 + 2*rounds().length) return { bar, kind:'land', r:rounds().length - 1 };
-  const r = Math.floor((bar - 1)/2);
-  return { bar, kind:(bar - 1) % 2 === 0 ? 'call' : 'resp', r };
+  const k = now/G.beat;
+  if (k < 4) return { seg:-1, kind:'count', r:-1 };
+  for (let i = 0; i < G.segs2.length; i++){ const sg = G.segs2[i]; if (k >= sg.a && k < sg.b) return { seg:i, kind:sg.kind, r:sg.r, a:sg.a, b:sg.b }; }
+  return { seg:G.segs2.length, kind:'land', r:rounds().length - 1 };
 }
 
 /* ---------------- leader mechanics ---------------- */
@@ -444,8 +446,7 @@ function startResp(r){
   const b = bbox(G.tips.length ? G.tips : [{ x:0, y:0 }]);
   const s = fitScale();
   G.respCam = { x:(b.x0 + b.x1)/2, y:(b.y0 + b.y1)/2 + 0.1*H/s + CRAWL*0.5, s };
-  for (const t of G.tips) grow(t, CRAWL, G.bar*0.95);   // super-slow crawl, never fully stops
-  bigText('跟！', '#ffc94a');
+  { const sg = G.segs2.find(q => q.r === r && q.kind === 'resp'); for (const t of G.tips) grow(t, CRAWL, (sg.b - sg.a)*G.beat*0.95); }   // super-slow crawl, never fully stops
 }
 function endResp(){ G.inResp = false; updateLevel(); }
 function judgeMiss(rp){
@@ -548,7 +549,7 @@ function showResult(){
 function worldText(x, y, txt, c, sz){ G.texts.push({ x, y, txt, c, sz:sz || 18, life:1.6, max:1.6, world:true }); }
 function screenText(txt, c, sz){ G.texts.push({ sx:W/2, sy:H*0.36, txt, c, sz:sz || 20, life:1.4, max:1.4, world:false }); }
 function tapText(sx, sy, txt, c){ G.texts.push({ sx, sy, txt, c, sz:17, life:0.7, max:0.7, world:false }); }
-function bigText(txt, c){ G.big = { txt, c, life:0.8 }; }
+function bigText(txt, c, life){ G.big = { txt, c, life:life || 0.8, max:life || 0.8 }; }
 const rain = [];
 function newDrop(any){ return { x:Math.random()*(W + 200) - 100, y:any ? Math.random()*H : -20, l:rnd(10, 22), v:rnd(500, 800) }; }
 
@@ -691,15 +692,15 @@ function update(dt){
     const now = clock();
     scheduleAudio(now);
     const bi = barInfo(now);
-    if (bi.bar !== G.curBar){
-      const prev = G.curBar; G.curBar = bi.bar;
-      if (prev >= 0 && barInfo(prev*G.bar + 0.001).kind === 'resp') endResp();
+    if (bi.seg !== G.curSeg){
+      const prev = G.curSeg; G.curSeg = bi.seg;
+      if (prev >= 0 && G.segs2[prev] && G.segs2[prev].kind === 'resp') endResp();
       if (bi.kind === 'call'){
-        bigText('听', '#bfe6ff'); G.levelBars[G.level]++;
+        bigText('听', '#bfe6ff', 0.5); G.levelBars[G.level]++;
         setTxt('prog', String(bi.r + 1));
         { const pk = rounds()[bi.r]; if (bi.r === 0 || pk !== rounds()[bi.r - 1]) screenText(`这次敲 ${HITS_LABEL[pk]}`, '#d2aaff', 22); }
         setHint('先听，别点');
-      } else if (bi.kind === 'resp'){ startResp(bi.r); setHint('跟着节奏点小球，大球别点'); }
+      } else if (bi.kind === 'resp'){ bigText('跟！', '#ffc94a', 0.5); startResp(bi.r); setHint('跟着节奏点小球，大球别点'); }
       else if (bi.kind === 'land'){ startLanding(); }
     }
     if (G.phase === 'play'){
@@ -709,7 +710,7 @@ function update(dt){
         doCall(c);
       }
       { const tn = tapClock(); for (const q of G.resps) if (!q.done && tn > q.t + WIN_G) judgeMiss(q); }
-      if (bi.kind === 'count'){ const n = 4 - Math.floor(now/G.beat); if (n >= 1 && n <= 4 && G.lastCount !== n){ G.lastCount = n; bigText(String(n), '#e9ecff'); } }
+      if (bi.kind === 'count'){ const n = 4 - Math.floor(now/G.beat); if (n >= 1 && n <= 4 && G.lastCount !== n){ G.lastCount = n; bigText(String(n), '#e9ecff', 0.55); } }
     }
   }
   if (G.phase === 'land'){ G.lt += dt; if (G.lt >= 2.35) startFinale(G.main); }
@@ -775,7 +776,7 @@ function render(){
     rg.addColorStop(0, `rgba(${col},0)`); rg.addColorStop(1, `rgba(${col},${0.42*a})`);
     ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
   }
-  const lbOn = (G.phase === 'play' && G.inResp) || G.phase === 'land' || G.phase === 'finale';
+  const lbOn = G.phase === 'land' || G.phase === 'finale';
   G.lb += ((lbOn ? 1 : 0) - G.lb)*0.15;
   if (G.lb > 0.01){
     const bh = H*0.06*G.lb; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh);
@@ -793,38 +794,37 @@ function drawCue(){
   const now = clock(), bi = barInfo(now);
   const hb = $('hud').getBoundingClientRect(), y0 = hb.bottom + 26;
   if (G.big){
-    const a = clamp(G.big.life/0.8*1.6, 0, 1), sc = 1 + (1 - G.big.life/0.8)*0.15;
+    const a = clamp(G.big.life/G.big.max*1.6, 0, 1), sc = 1 + (1 - G.big.life/G.big.max)*0.15;
     ctx.save(); ctx.globalAlpha = a; ctx.font = `800 ${Math.round(46*sc)}px ${FONT_D}`; ctx.textAlign = 'center';
     ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(8,10,24,0.85)'; ctx.strokeText(G.big.txt, W/2, H*0.27);
     ctx.fillStyle = G.big.c; ctx.fillText(G.big.txt, W/2, H*0.27); ctx.restore();
   }
   if (bi.r < 0 || bi.kind === 'land') return;
-  const pk = rounds()[bi.r], hits = PATTERNS[pk].hits, calls = G.calls.filter(c => c.r === bi.r), resps = G.resps.filter(q => q.r === bi.r);
-  const lane = Math.min(W - 64, 300), x0 = W/2 - lane/2;
-  ctx.font = `bold 13px ${FONT_B}`; ctx.textAlign = 'right';
-  // two rows: 雷 (call) and 你 (response); dot x = beat position in bar
-  const rows = [['雷', calls, 0], ['你', resps, 1]];
-  for (const [label, list, row] of rows){
-    const y = y0 + row*22;
-    const active = (row === 0 && bi.kind === 'call') || (row === 1 && bi.kind === 'resp');
-    ctx.fillStyle = active ? (row ? '#ffc94a' : '#bfe6ff') : 'rgba(149,155,200,0.6)'; ctx.fillText(label, x0 - 10, y + 4);
-    ctx.strokeStyle = 'rgba(46,52,102,0.9)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + lane, y); ctx.stroke();
-    for (let k = 0; k <= 4; k++){ ctx.fillStyle = 'rgba(46,52,102,0.9)'; ctx.fillRect(x0 + lane*k/4 - 0.5, y - 4, 1, 8); }
-    list.forEach((e, i) => {
-      const x = x0 + lane*(hits[i][0]/4), big = hits[i][1] === 'q';
-      const r = big ? 6.5 : 5;
-      if (row === 0){
-        const played = now >= e.t;
-        ctx.fillStyle = played ? '#bfe6ff' : 'rgba(191,230,255,0.25)'; circle(x, y, r);
-      } else {
-        const col = e.res === 'perfect' ? '#ffc94a' : e.res === 'good' ? '#bfe6ff' : e.res === 'miss' || e.res === 'wrong' ? '#ff4d5e' : null;
-        if (col){ ctx.fillStyle = col; circle(x, y, r); }
-        else { ctx.strokeStyle = active ? '#ffc94a' : 'rgba(255,201,74,0.35)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, r, 0, 2*PI); ctx.stroke(); }
-      }
-    });
-    if (active){ const ph = ((now/G.bar) % 1); ctx.fillStyle = row ? 'rgba(255,201,74,0.9)' : 'rgba(191,230,255,0.9)'; ctx.fillRect(x0 + lane*ph - 1, y - 8, 2, 16); }
-  }
-  if (G.combo >= 2){ ctx.textAlign = 'center'; ctx.font = `bold 14px ${FONT_B}`; ctx.fillStyle = '#ffc94a'; ctx.fillText(`连对 ${G.combo} 下`, W/2, y0 + 50); }
+  const pk = rounds()[bi.r], P = PATTERNS[pk], span = P.span, hits = P.hits;
+  const calls = G.calls.filter(c => c.r === bi.r), resps = G.resps.filter(q => q.r === bi.r);
+  const lane = Math.min(W - 80, 300), x0 = W/2 - lane/2 + 8, y = y0 + 6;
+  const segA = bi.kind === 'call' ? bi.a : bi.a - span, total = span*2;
+  const xAt = beat => x0 + lane*(beat/total);
+  // two halves: 雷 (left) and 你 (right)
+  ctx.fillStyle = 'rgba(191,230,255,0.08)'; ctx.fillRect(x0, y - 13, lane/2, 26);
+  ctx.fillStyle = 'rgba(255,201,74,0.10)'; ctx.fillRect(x0 + lane/2, y - 13, lane/2, 26);
+  ctx.font = `bold 12px ${FONT_B}`; ctx.textAlign = 'center';
+  ctx.fillStyle = bi.kind === 'call' ? '#bfe6ff' : 'rgba(191,230,255,0.45)'; ctx.fillText('闪电', x0 + lane/4, y - 18);
+  ctx.fillStyle = bi.kind === 'resp' ? '#ffc94a' : 'rgba(255,201,74,0.45)'; ctx.fillText('你', x0 + lane*3/4, y - 18);
+  for (let k = 0; k <= total; k++){ ctx.fillStyle = k === span ? 'rgba(233,236,255,0.5)' : 'rgba(46,52,102,0.9)'; ctx.fillRect(xAt(k) - 0.5, y - 8, 1, 16); }
+  calls.forEach((e, i) => {
+    const x = xAt(hits[i][0] + 0.001), r = hits[i][1] === 'q' ? 7 : 5.5;
+    ctx.fillStyle = now >= e.t ? '#bfe6ff' : 'rgba(191,230,255,0.3)'; circle(x + 3, y, r);
+  });
+  resps.forEach((e, i) => {
+    const x = xAt(span + hits[i][0] + 0.001), r = hits[i][1] === 'q' ? 7 : 5.5;
+    const col = e.res === 'perfect' ? '#ffc94a' : e.res === 'good' ? '#7fd0ff' : e.res === 'miss' || e.res === 'wrong' ? '#ff4d5e' : null;
+    if (col){ ctx.fillStyle = col; circle(x + 3, y, r); }
+    else { ctx.strokeStyle = '#ffc94a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x + 3, y, r, 0, 2*PI); ctx.stroke(); }
+  });
+  const ph = clamp((now/G.beat - segA)/total, 0, 1);
+  ctx.fillStyle = '#fff'; ctx.fillRect(xAt(ph*total) + 2, y - 12, 2, 24);
+  if (G.combo >= 2){ ctx.textAlign = 'center'; ctx.font = `bold 14px ${FONT_B}`; ctx.fillStyle = '#ffc94a'; ctx.fillText(`连对 ${G.combo} 下`, W/2, y0 + 44); }
 }
 function circle(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, 2*PI); ctx.fill(); }
 function drawCloud(){
