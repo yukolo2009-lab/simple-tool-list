@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
 </head>
 <body>
 <title>天打雷劈 节奏版</title>
@@ -71,6 +72,7 @@ canvas{position:fixed;inset:0;display:block}
 .btns .ghost{grid-column:1/-1;background:transparent}
 .sound{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);pointer-events:auto;font-size:12px;
   background:rgba(10,12,29,.6);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer}
+.ver{margin:0;font-size:11px;color:var(--mute);text-align:center;opacity:.8}
 @media (max-height:620px){.panel h1{font-size:40px}.grade{font-size:48px}}
 </style>
 
@@ -97,6 +99,7 @@ canvas{position:fixed;inset:0;display:block}
     <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
+  <p class="ver">版本 10月13日 20:15 · 闪电敲完马上轮到你</p>
 </section>
 
 <section class="panel" id="result" hidden>
