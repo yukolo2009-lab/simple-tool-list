@@ -87,13 +87,12 @@ canvas{position:fixed;inset:0;display:block}
 
 <section class="panel" id="menu">
   <h1>天打雷劈</h1>
-  <p class="sub">闪电领唱，你来跟唱。闪电每敲一下鼓就往下走一步、甩出一条支叉；下一小节进入慢动作，轮到你用同样的节奏，“啪”地把支叉一条条掐灭。</p>
+  <p class="sub">闪电先敲鼓，你再跟着敲。<br>敲对了，就能劈中小坏蛋！</p>
   <ol class="how">
-    <li><b>点坏蛋</b>锁定目标，按“开劈”，听 4 拍预备</li>
-    <li><b>听</b>：闪电敲“咚、锵”，小光球是灰的，还不能点</li>
-    <li><b>跟！</b>：慢动作，小光球亮起，在拍子上鼓起来的那一刻点它</li>
-    <li><b>别碰大光球</b>：离目标最近的那个是主干；点掉它，次近的接替，方向会偏</li>
-    <li>一下 → 咚咚锵 → 咚咚锵 咚 锵，每种两遍。漏掉的会往外窜，画面变黄变红，雷变细</li>
+    <li>点一下<b>小坏蛋</b>，再按<b>开劈</b></li>
+    <li>闪电敲“咚咚锵”时，<b>先听，别点</b></li>
+    <li>轮到你了，跟着<b>一样的节奏</b>点亮亮的<b>小球</b></li>
+    <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
 </section>
@@ -134,7 +133,7 @@ const PATTERNS = {
 };
 const ROUNDS = ['one','one','three','three','five','five'];
 const SECTION_OF = [0,0,1,1,2,2];
-const SECTION_NAMES = ['第一段 · 一下一下', '第二段 · 咚咚锵', '第三段 · 咚咚锵 咚 锵'];
+const SECTION_NAMES = ['第一段：敲一下', '第二段：咚咚锵', '第三段：咚咚锵 咚 锵'];
 const WIN_P = 0.08, WIN_G = 0.18;
 const CALL_STEP = 2.0, CRAWL = 0.5;
 
@@ -384,7 +383,7 @@ function kill(t){
 }
 function updateLevel(){
   const L = warnLevel();
-  if (L > G.level){ sfx.warn(L === 2); screenText(L === 1 ? '漏掉的支叉往外窜 · 黄色警告' : '漏太多了 · 红色警告', L === 1 ? '#ffc94a' : '#ff4d5e'); }
+  if (L > G.level){ sfx.warn(L === 2); screenText(L === 1 ? '漏掉了，小心！' : '漏太多啦！', L === 1 ? '#ffc94a' : '#ff4d5e'); }
   else if (L < G.level) screenText('收回来了', '#bfe6ff');
   G.level = L;
 }
@@ -432,7 +431,7 @@ function startLanding(){
   G.phase = 'land'; G.lt = 0; G.inResp = false;
   for (const t of G.tips) t.fresh = false;
   sfx.startSlow();
-  screenText('慢动作 · 落地', '#bfe6ff', 22);
+  screenText('要落地啦！', '#bfe6ff', 22);
   const m = G.main, vx = tgtX();
   const nx = m.x + clamp(vx - m.x, -3, 3);
   growTo(m, nx, GROUND, 2.2);
@@ -494,22 +493,22 @@ function showResult(){
   const r = G.result, o = G.outcome, v = G.L.villainName;
   const grade = o !== 'hit' ? '劈歪了' : (r.power >= 25 && r.acc >= 0.8) ? '天罚' : r.power >= 12 ? '粗雷' : '细雷';
   const lines = {
-    hit: grade === '天罚' ? `${v}被劈成了爆炸头，节奏一拍不差` : grade === '粗雷' ? `劈中了，可惜漏了几拍，雷不够粗` : `支叉剩太多，电全分散了，${v}只是麻了一下`,
-    hen: `主干跑偏，劈中了无辜的老母鸡，${v}趁乱跑了`,
-    pole: `雷被电线杆截走了，${v}大摇大摆跑了`,
-    ground: `主干跑偏，劈在泥地上，${v}溜之大吉`
+    hit: grade === '天罚' ? `${v}被劈成了爆炸头！` : grade === '粗雷' ? `劈中了！漏了几下，雷没那么粗` : `小叉剩太多，${v}只是麻了一下`,
+    hen: `劈到老母鸡了！${v}趁机跑了`,
+    pole: `雷被电线杆抢走了，${v}跑了`,
+    ground: `劈到地上了，${v}跑了`
   };
   $('rGrade').textContent = grade; $('rGrade').className = 'grade' + (o === 'hit' ? '' : ' miss');
   $('rLine').textContent = lines[o];
   $('rScore').textContent = r.score;
   const stars = r.score >= 85 ? 3 : r.score >= 65 ? 2 : r.score >= 40 ? 1 : 0;
   $('rStars').innerHTML = [0,1,2].map(i => `<span class="${i < stars ? 'on' : ''}">★</span>`).join('');
-  const resultName = { hit:'劈中 ×1', hen:'劈到母鸡 ×0.3', pole:'劈到电线杆 ×0.3', ground:'劈空 ×0.45' }[o];
+  const resultName = { hit:'小坏蛋', hen:'老母鸡', pole:'电线杆', ground:'地面' }[o];
   $('rRows').innerHTML =
-    `<dt>跟唱<small>完美 ${G.perfect} · 不错 ${G.good} · 漏 ${G.miss} · 掐错主干 ${G.wrong}</small></dt><dd>${Math.round(r.acc*100)}%</dd>` +
-    `<dt>最高连击</dt><dd>${G.maxCombo}</dd>` +
-    `<dt>雷势<small>落地时剩 ${r.left} 条支叉</small></dt><dd>${r.power} / 25</dd>` +
-    `<dt>结局</dt><dd>${resultName}</dd>`;
+    `<dt>跟得准不准<small>真准 ${G.perfect} · 还行 ${G.good} · 漏了 ${G.miss} · 点到大球 ${G.wrong}</small></dt><dd>${Math.round(r.acc*100)}%</dd>` +
+    `<dt>最多连对</dt><dd>${G.maxCombo} 下</dd>` +
+    `<dt>雷有多粗<small>还剩 ${r.left} 条小叉没点掉</small></dt><dd>${r.power} / 25</dd>` +
+    `<dt>劈到了谁</dt><dd>${resultName}</dd>`;
   $('rNext').textContent = G.lv === LEVELS.length - 1 ? '从头再来' : '下一关';
   if (!best[G.lv] || r.score > best[G.lv]){ best[G.lv] = r.score; try { localStorage.setItem('tdlp-rhythm-best', JSON.stringify(best)); } catch(e){} }
   $('result').hidden = false; $('hud').hidden = true; $('bottom').hidden = true;
@@ -528,7 +527,7 @@ let hintText = '';
 function setHint(t){ if (t !== hintText){ hintText = t; $('hint').textContent = t; } }
 function buildMenu(){
   $('levels').innerHTML = LEVELS.map((L, i) => {
-    const b = best[i]; const sub = `${L.bpm} 拍/分` + (b != null ? ` · 最高 ${b}` : '');
+    const b = best[i]; const sub = ['慢慢来', '快一点', '最快'][i] + (b != null ? ` · 最高 ${b} 分` : '');
     return `<button data-i="${i}" class="${b != null ? 'best' : ''}">${L.name} · ${L.villainName}<span>${sub}</span></button>`;
   }).join('');
   $('levels').querySelectorAll('button').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.i)));
@@ -539,12 +538,12 @@ function startLevel(i){
   $('menu').hidden = true; $('result').hidden = true;
   $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false;
   $('lvName').textContent = G.L.name; $('tgName').textContent = '目标：' + G.L.villainName;
-  $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下' + G.L.villainName + '，锁定目标');
+  $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下小坏蛋');
 }
 function selectTarget(){
   if (G.selected) return;
   G.selected = true; sfx.select();
-  $('go').hidden = false; setHint('虚线是理想路线 · 先听闪电敲，再跟着敲');
+  $('go').hidden = false; setHint('准备好了，就按开劈');
 }
 function begin(){
   if (G.phase !== 'select') return;
@@ -580,28 +579,28 @@ cv.addEventListener('pointerdown', e => {
   let rp = null, rd = 1e9;
   for (const q of G.resps){ if (q.done) continue; const d = Math.abs(now - q.t); if (d < rd){ rd = d; rp = q; } }
   if (!rp || rd > WIN_G){
-    if (bi.kind === 'call'){ tapText(x, y - 24, '先听', '#959bc8'); return; }
-    sfx.dull(); G.combo = 0; tapText(x, y - 24, '没在拍上', '#ff4d5e'); return;
+    if (bi.kind === 'call'){ tapText(x, y - 24, '先听，别点', '#959bc8'); return; }
+    sfx.dull(); G.combo = 0; tapText(x, y - 24, '没跟上节奏', '#ff4d5e'); return;
   }
   // which ball?
   let hit = null, hd = 1e9;
   for (const t of G.tips){ const [sx, sy] = w2s(...tipPos(t)); const d = Math.hypot(x - sx, y - sy); if (d < 46 && d < hd){ hd = d; hit = t; } }
-  if (!hit){ sfx.dull(); tapText(x, y - 24, '没点中光球', '#959bc8'); return; }
+  if (!hit){ sfx.dull(); tapText(x, y - 24, '没点到球', '#959bc8'); return; }
   const perfect = rd <= WIN_P;
   rp.done = true;
   const [wx, wy] = tipPos(hit);
   if (hit === G.main){
     rp.res = 'wrong'; G.wrong++; G.combo = 0; G.shake = RM ? 0 : 0.25;
     sfx.pa(sfx.now(), false, false); sfx.dull();
-    tapText(x, y - 28, '主干断了！', '#ff4d5e');
+    tapText(x, y - 28, '哎呀，点到大球了', '#ff4d5e');
     kill(hit); pickMain();
-    if (G.main) tapText(...w2s(...tipPos(G.main)).map((v, i) => i ? v - 24 : v), '新主干', '#bfe6ff');
+    if (G.main) tapText(...w2s(...tipPos(G.main)).map((v, i) => i ? v - 24 : v), '换它带路', '#bfe6ff');
   } else {
     rp.res = perfect ? 'perfect' : 'good';
     if (perfect) G.perfect++; else G.good++;
     G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
     sfx.pa(sfx.now(), rp.type === 'q', perfect);
-    tapText(x, y - 28, perfect ? '啪！完美' : '啪 · 不错', perfect ? '#ffc94a' : '#bfe6ff');
+    tapText(x, y - 28, perfect ? '啪！真准' : '啪！', perfect ? '#ffc94a' : '#bfe6ff');
     kill(hit); pickMain();
   }
   for (let i = 0; i < 16; i++) G.parts.push({ x:wx, y:wy, vx:rnd(-3, 3), vy:rnd(-3, 3), life:rnd(0.2, 0.5), max:0.5, c:perfect ? '#ffc94a' : '#bfe6ff', sz:rnd(1, 2.5), g:0 });
@@ -660,8 +659,8 @@ function update(dt){
       if (bi.kind === 'call'){
         bigText('听', '#bfe6ff'); G.levelBars[G.level]++;
         if (bi.r === 0 || SECTION_OF[bi.r] !== SECTION_OF[bi.r - 1]){ screenText(SECTION_NAMES[SECTION_OF[bi.r]], '#d2aaff', 22); setTxt('prog', String(SECTION_OF[bi.r] + 1)); }
-        setHint('听闪电敲 · 记住节奏');
-      } else if (bi.kind === 'resp'){ startResp(bi.r); setHint('同样的节奏点小光球 · 别碰大的'); }
+        setHint('先听，别点');
+      } else if (bi.kind === 'resp'){ startResp(bi.r); setHint('跟着节奏点小球，大球别点'); }
       else if (bi.kind === 'land'){ startLanding(); }
     }
     if (G.phase === 'play'){
@@ -702,7 +701,7 @@ function setTxt(id, v){ if (hudCache[id] !== v){ hudCache[id] = v; $(id).textCon
 function updateHud(){
   if (G.phase !== 'play' && G.phase !== 'land') return;
   const lvl = G.level;
-  const chipT = G.phase === 'land' ? '慢动作' : G.inResp ? '跟唱 · 慢动作' : ['画面稳定', '黄色警告', '红色警告'][lvl];
+  const chipT = G.phase === 'land' ? '慢动作' : G.inResp ? '轮到你' : ['很稳', '小心', '危险'][lvl];
   if (hudCache.chip !== chipT){ hudCache.chip = chipT; const c = $('chip'); c.textContent = chipT; c.className = 'chip' + (lvl === 1 ? ' y' : lvl >= 2 ? ' r' : ''); }
 }
 
@@ -743,7 +742,7 @@ function render(){
     const bh = H*0.06*G.lb; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh);
     if (G.phase === 'finale' && G.ft >= FIN.pause && G.ft < FIN.impact){
       ctx.font = `bold 13px ${FONT_B}`; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(233,236,255,0.85)';
-      ctx.fillText(G.ft < FIN.climbEnd ? '回击 · 从地面冲向云层' : '贯通', W/2, H - bh - 14);
+      ctx.fillText(G.ft < FIN.climbEnd ? '电从地上冲回云里' : '连上啦！', W/2, H - bh - 14);
     }
   }
   if (G.phase === 'play') drawCue();
@@ -786,7 +785,7 @@ function drawCue(){
     });
     if (active){ const ph = ((now/G.bar) % 1); ctx.fillStyle = row ? 'rgba(255,201,74,0.9)' : 'rgba(191,230,255,0.9)'; ctx.fillRect(x0 + lane*ph - 1, y - 8, 2, 16); }
   }
-  if (G.combo >= 2){ ctx.textAlign = 'center'; ctx.font = `bold 14px ${FONT_B}`; ctx.fillStyle = '#ffc94a'; ctx.fillText(`连击 ${G.combo}`, W/2, y0 + 50); }
+  if (G.combo >= 2){ ctx.textAlign = 'center'; ctx.font = `bold 14px ${FONT_B}`; ctx.fillStyle = '#ffc94a'; ctx.fillText(`连对 ${G.combo} 下`, W/2, y0 + 50); }
 }
 function circle(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, 2*PI); ctx.fill(); }
 function drawCloud(){
