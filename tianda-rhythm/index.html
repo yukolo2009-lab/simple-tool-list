@@ -134,7 +134,7 @@ const PATTERNS = {
 const ROUNDS = ['one','one','three','three','five','five'];
 const SECTION_OF = [0,0,1,1,2,2];
 const SECTION_NAMES = ['第一段：敲一下', '第二段：咚咚锵', '第三段：咚咚锵 咚 锵'];
-const WIN_P = 0.08, WIN_G = 0.18;
+const WIN_P = 0.12, WIN_G = 0.25;
 const CALL_STEP = 2.0, CRAWL = 0.5;
 
 /* ---------------- sizing & camera ---------------- */
@@ -274,6 +274,11 @@ const lineX = y => tgtX()*y/GROUND;
 function clock(){
   if (!G.songStarted) return -1;
   return G.useAC ? sfx.now() - G.t0 : performance.now()/1000 - G.t0;
+}
+// what the player actually hears lags the audio clock by the device's output latency
+function tapClock(){
+  const lat = G.useAC && sfx.ac ? clamp((sfx.ac.outputLatency || 0) + (sfx.ac.baseLatency || 0), 0, 0.25) : 0;
+  return clock() - lat;
 }
 function buildSong(){
   const b = G.bar, bt = G.beat;
@@ -422,8 +427,7 @@ function startResp(r){
 }
 function endResp(){ G.inResp = false; updateLevel(); }
 function judgeMiss(rp){
-  rp.done = true; rp.res = 'miss'; G.miss++; G.combo = 0; sfx.dull();
-  tapText(W/2, H*0.32, '漏', '#ff4d5e');
+  rp.done = true; rp.res = 'miss'; G.miss++; G.combo = 0;
 }
 
 /* ---------------- ending ---------------- */
@@ -466,7 +470,7 @@ function startFinale(tip){
   for (let i = 1; i < G.rb.length; i++) G.rbCum.push(G.rbCum[i - 1] + Math.hypot(G.rb[i].x - G.rb[i - 1].x, G.rb[i].y - G.rb[i - 1].y));
   sfx.stopBeds(0.12);
   const total = G.resps.length;
-  const acc = clamp((G.perfect*2 + G.good)/(2*total) - G.wrong*0.05, 0, 1);
+  const acc = clamp((G.perfect*2 + G.good + (G.off || 0)*0.5)/(2*total) - G.wrong*0.05, 0, 1);
   const power = left === 0 ? 25 : left === 1 ? 18 : left === 2 ? 12 : left === 3 ? 7 : 3;
   const mult = outcome === 'hit' ? 1 : outcome === 'ground' ? 0.45 : 0.3;
   const score = Math.round((70*acc + 30*power/25)*mult);
@@ -505,7 +509,7 @@ function showResult(){
   $('rStars').innerHTML = [0,1,2].map(i => `<span class="${i < stars ? 'on' : ''}">★</span>`).join('');
   const resultName = { hit:'小坏蛋', hen:'老母鸡', pole:'电线杆', ground:'地面' }[o];
   $('rRows').innerHTML =
-    `<dt>跟得准不准<small>真准 ${G.perfect} · 还行 ${G.good} · 漏了 ${G.miss} · 点到大球 ${G.wrong}</small></dt><dd>${Math.round(r.acc*100)}%</dd>` +
+    `<dt>跟得准不准<small>真准 ${G.perfect} · 还行 ${G.good} · 没踩拍 ${G.off || 0} · 点到大球 ${G.wrong}</small></dt><dd>${Math.round(r.acc*100)}%</dd>` +
     `<dt>最多连对</dt><dd>${G.maxCombo} 下</dd>` +
     `<dt>雷有多粗<small>还剩 ${r.left} 条小叉没点掉</small></dt><dd>${r.power} / 25</dd>` +
     `<dt>劈到了谁</dt><dd>${resultName}</dd>`;
@@ -574,33 +578,35 @@ cv.addEventListener('pointerdown', e => {
     return;
   }
   if (G.phase !== 'play') return;
-  const now = clock(), bi = barInfo(now);
+  const now = tapClock(), bi = barInfo(clock());
   // nearest pending expected hit (may sit just across the bar line if the tap is a little early)
   let rp = null, rd = 1e9;
   for (const q of G.resps){ if (q.done) continue; const d = Math.abs(now - q.t); if (d < rd){ rd = d; rp = q; } }
-  if (!rp || rd > WIN_G){
-    if (bi.kind === 'call'){ tapText(x, y - 24, '先听，别点', '#959bc8'); return; }
-    sfx.dull(); G.combo = 0; tapText(x, y - 24, '没跟上节奏', '#ff4d5e'); return;
-  }
-  // which ball?
+  const onBeat = rp && rd <= WIN_G;
+  // small balls can be tapped any time during "轮到你" (or a hair before it starts)
+  const canTap = G.inResp || onBeat;
+  if (!canTap){ tapText(x, y - 24, '先听，别点', '#959bc8'); return; }
   let hit = null, hd = 1e9;
-  for (const t of G.tips){ const [sx, sy] = w2s(...tipPos(t)); const d = Math.hypot(x - sx, y - sy); if (d < 46 && d < hd){ hd = d; hit = t; } }
-  if (!hit){ sfx.dull(); tapText(x, y - 24, '没点到球', '#959bc8'); return; }
-  const perfect = rd <= WIN_P;
-  rp.done = true;
+  for (const t of G.tips){ const [sx, sy] = w2s(...tipPos(t)); const d = Math.hypot(x - sx, y - sy); if (d < 52 && d < hd){ hd = d; hit = t; } }
+  if (!hit){ tapText(x, y - 24, '没点到球', '#959bc8'); return; }
+  const perfect = onBeat && rd <= WIN_P;
+  if (onBeat) rp.done = true;
   const [wx, wy] = tipPos(hit);
   if (hit === G.main){
-    rp.res = 'wrong'; G.wrong++; G.combo = 0; G.shake = RM ? 0 : 0.25;
+    if (onBeat) rp.res = 'wrong';
+    G.wrong++; G.combo = 0; G.shake = RM ? 0 : 0.25;
     sfx.pa(sfx.now(), false, false); sfx.dull();
     tapText(x, y - 28, '哎呀，点到大球了', '#ff4d5e');
     kill(hit); pickMain();
     if (G.main) tapText(...w2s(...tipPos(G.main)).map((v, i) => i ? v - 24 : v), '换它带路', '#bfe6ff');
   } else {
-    rp.res = perfect ? 'perfect' : 'good';
-    if (perfect) G.perfect++; else G.good++;
-    G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-    sfx.pa(sfx.now(), rp.type === 'q', perfect);
-    tapText(x, y - 28, perfect ? '啪！真准' : '啪！', perfect ? '#ffc94a' : '#bfe6ff');
+    if (onBeat){
+      rp.res = perfect ? 'perfect' : 'good';
+      if (perfect) G.perfect++; else G.good++;
+      G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+    } else G.off = (G.off || 0) + 1;
+    sfx.pa(sfx.now(), onBeat && rp.type === 'q', perfect);
+    tapText(x, y - 28, perfect ? '啪！真准' : onBeat ? '啪！' : '啪', perfect ? '#ffc94a' : '#bfe6ff');
     kill(hit); pickMain();
   }
   for (let i = 0; i < 16; i++) G.parts.push({ x:wx, y:wy, vx:rnd(-3, 3), vy:rnd(-3, 3), life:rnd(0.2, 0.5), max:0.5, c:perfect ? '#ffc94a' : '#bfe6ff', sz:rnd(1, 2.5), g:0 });
@@ -669,7 +675,7 @@ function update(dt){
         if (!G.useAC){ if (c.type === 'd') sfx.dong(sfx.now()); else sfx.qiang(sfx.now()); }
         doCall(c);
       }
-      for (const q of G.resps) if (!q.done && now > q.t + WIN_G) judgeMiss(q);
+      { const tn = tapClock(); for (const q of G.resps) if (!q.done && tn > q.t + WIN_G) judgeMiss(q); }
       if (bi.kind === 'count'){ const n = 4 - Math.floor(now/G.beat); if (n >= 1 && n <= 4 && G.lastCount !== n){ G.lastCount = n; bigText(String(n), '#e9ecff'); } }
     }
   }
