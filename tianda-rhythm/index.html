@@ -135,7 +135,7 @@ const ROUNDS = ['one','one','three','three','five','five'];
 const SECTION_OF = [0,0,1,1,2,2];
 const SECTION_NAMES = ['第一段：敲一下', '第二段：咚咚锵', '第三段：咚咚锵 咚 锵'];
 const WIN_P = 0.12, WIN_G = 0.25;
-const CALL_STEP = 2.0, CRAWL = 0.5;
+const CALL_STEP = 2.0, CRAWL = 0.5, VSCALE = 1.7;
 
 /* ---------------- sizing & camera ---------------- */
 let W = 0, H = 0, DPR = 1;
@@ -455,7 +455,7 @@ function startFinale(tip){
   const left = smallTips().length;
   const v = villain(), x = tip.x;
   let outcome = 'ground', hitObj = null;
-  if (Math.abs(x - v.x) < 1.6){ outcome = 'hit'; hitObj = v; }
+  if (Math.abs(x - v.x) < 1.9){ outcome = 'hit'; hitObj = v; }
   else {
     let bd = 9;
     for (const o of G.objs){ if (o.villain) continue; const r = o.kind === 'pole' ? 1.0 : 1.15, d = Math.abs(x - o.x); if (d < r && d < bd){ bd = d; hitObj = o; outcome = o.kind; } }
@@ -573,8 +573,8 @@ $('sound').addEventListener('click', () => { sfx.on = !sfx.on; if (!sfx.on) sfx.
 cv.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY;
   if (G.phase === 'select'){
-    const v = villain(), [sx, sy] = w2s(v.x, GROUND - 0.5);
-    if (Math.hypot(x - sx, y - sy) < Math.max(44, 1.3*cam.s)) selectTarget();
+    const v = villain(), [sx, sy] = w2s(v.x, GROUND - 0.8);
+    if (Math.hypot(x - sx, y - sy) < Math.max(56, 1.6*cam.s)) selectTarget();
     return;
   }
   if (G.phase !== 'play') return;
@@ -829,11 +829,11 @@ function drawGuide(){
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore();
 }
 function drawSelectRing(){
-  const v = villain(), [sx, sy] = w2s(v.x, GROUND - 0.55), r = Math.max(26, 1.15*cam.s)*(1 + 0.08*Math.sin(G.t*5));
+  const v = villain(), [sx, sy] = w2s(v.x, GROUND - 0.8), r = Math.max(40, 1.7*cam.s)*(1 + 0.08*Math.sin(G.t*5));
   ctx.strokeStyle = '#ffc94a'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(sx, sy, r, 0, 2*PI); ctx.stroke();
   ctx.font = `16px ${FONT_D}`; ctx.textAlign = 'center'; ctx.fillStyle = '#ffc94a';
-  ctx.fillText(G.selected ? '目标' : '点我', sx, sy - r - 8);
+  ctx.font = `bold 16px ${FONT_D}`; ctx.fillText(G.selected ? '就劈它！' : '点我', sx, sy + r + 22);
 }
 function segAlpha(s){ if (!s.deadAt) return 1; const k = clamp((G.t - s.deadAt)/0.35, 0, 1); return 1 - 0.84*k; }
 function strokeSeg(s, frac){
@@ -904,7 +904,7 @@ function drawStreamers(){
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   const [mx, my] = tipPos(G.main);
   for (const o of G.objs){
-    const top = o.kind === 'pole' ? 3.0 : o.villain ? 1.05 : 1.15;
+    const top = o.kind === 'pole' ? 3.0 : o.villain ? 1.05*VSCALE : 1.15;
     const d = Math.hypot(mx - o.x, my - (GROUND - top));
     const len = clamp((7 - d)/7, 0, 1)*(o.kind === 'pole' ? 1.8 : 1.2);
     if (len < 0.05) continue;
@@ -974,10 +974,19 @@ function drawTexts(world){
 /* ---------------- characters ---------------- */
 function ell(x, y, rx, ry, rot){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, 2*PI); ctx.fill(); }
 function drawObj(o){
-  const [sx, gy] = w2s(o.x, GROUND), u = cam.s;
+  const [sx, gy] = w2s(o.x, GROUND);
+  // villain: drawn ~1.7x bigger (never tiny on the overview), with a red glow, a ground halo and a bouncing tag
+  const u = o.villain ? Math.max(cam.s*VSCALE, 34) : cam.s;
   if (o.kind !== 'pole' && (sx < -u*2 || sx > W + u*2)) return;
-  ctx.save(); ctx.translate(sx, gy); ctx.scale(u, u); ctx.lineWidth = 1.5/u;
   const ch = o.state === 'char';
+  if (o.villain && !ch){
+    const pulse = 0.5 + 0.5*Math.sin(G.t*4);
+    const rg = ctx.createRadialGradient(sx, gy, 0, sx, gy, u*1.3);
+    rg.addColorStop(0, `rgba(255,80,80,${0.35 + 0.2*pulse})`); rg.addColorStop(1, 'rgba(255,80,80,0)');
+    ctx.save(); ctx.translate(sx, gy); ctx.scale(1, 0.3); ctx.fillStyle = rg; circle(0, 0, u*1.3); ctx.restore();
+  }
+  ctx.save(); ctx.translate(sx, gy); ctx.scale(u, u); ctx.lineWidth = 1.5/u;
+  if (o.villain && !ch){ ctx.shadowColor = 'rgba(255,70,70,0.95)'; ctx.shadowBlur = 14; }
   const bob = o.state === 'idle' && o.villain ? Math.abs(Math.sin(G.t*(o.amp ? 9 : 3)))*0.06 : o.state === 'flee' ? Math.abs(Math.sin(G.t*18))*0.12 : 0;
   ctx.translate(0, -bob);
   if (o.kind === 'pole'){ drawPole(o, u); ctx.restore(); return; }
@@ -1010,6 +1019,19 @@ function drawObj(o){
     if (o.kind === 'cat'){ ctx.fillStyle = '#9fb4c8'; ell(hx + hr + 0.28, hy + 0.12, 0.22, 0.07); ctx.beginPath(); ctx.moveTo(hx + hr + 0.48, hy + 0.12); ctx.lineTo(hx + hr + 0.62, hy + 0.02); ctx.lineTo(hx + hr + 0.62, hy + 0.22); ctx.fill(); }
     if (o.kind === 'rat'){ ctx.fillStyle = '#e8c35a'; ell(hx + hr + 0.16, hy + 0.12, 0.12, 0.06, 0.4); ell(hx + hr + 0.2, hy + 0.2, 0.12, 0.06, -0.3); }
   } else { ctx.fillStyle = '#0d0d10'; for (let i = 0; i < 6; i++) circle(hx - 0.25 + i*0.1, hy - 0.3 - Math.sin(i*1.3)*0.08, 0.14); }
+  ctx.restore();
+  if (o.villain && o.state !== 'char' && G.phase !== 'result') drawVillainTag(sx, gy - u*1.15);
+}
+function drawVillainTag(x, y){
+  const b = Math.abs(Math.sin(G.t*5))*8;
+  y -= b;
+  ctx.save();
+  ctx.font = `800 15px ${FONT_D}`; ctx.textAlign = 'center';
+  const w = ctx.measureText('坏蛋').width + 18;
+  ctx.fillStyle = '#ff4d5e'; ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x - w/2, y - 34, w, 24, 12) : ctx.rect(x - w/2, y - 34, w, 24); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 11); ctx.lineTo(x + 7, y - 11); ctx.lineTo(x, y - 2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText('坏蛋', x, y - 16);
   ctx.restore();
 }
 function drawHen(ch){
