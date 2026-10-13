@@ -76,6 +76,10 @@ canvas{position:fixed;inset:0;display:block}
 .setbtn{font-family:var(--body);font-size:14px;font-weight:700;cursor:pointer;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--volt);padding:10px 14px}
 .settings{z-index:20;touch-action:auto}
 .notice{z-index:15}
+.pausep{z-index:18}
+.pausep h2{margin:0;font-family:var(--display);font-size:26px;color:var(--volt-hot);text-align:center}
+.pausep .sub:empty{display:none}
+.pausebtn{right:auto;left:16px}
 .notice h2{margin:0;font-family:var(--display);font-size:24px;color:var(--amber)}
 .notice .sub{white-space:pre-line}
 .settings h2{margin:0;font-family:var(--display);font-size:24px;color:var(--volt-hot)}
@@ -102,6 +106,7 @@ canvas{position:fixed;inset:0;display:block}
   <button class="btn" id="go" hidden>开劈</button>
 </div>
 <button class="sound" id="sound" hidden>音量</button>
+<button class="sound pausebtn" id="pauseBtn" hidden>暂停</button>
 
 <section class="panel" id="menu">
   <h1>天打雷劈</h1>
@@ -114,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 21:40 · 半透明缩圈、默认设置</p>
+  <p class="ver">版本 10月13日 21:50 · 修复闪电全断卡住、加暂停</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -131,6 +136,16 @@ canvas{position:fixed;inset:0;display:block}
   <h2 id="noticeTitle">变奏练习</h2>
   <p class="sub" id="noticeText"></p>
   <button class="btn" id="noticeOk">知道了，开始</button>
+</section>
+
+<section class="panel pausep" id="pause" hidden>
+  <h2 id="pauseTitle">暂停</h2>
+  <p class="sub" id="pauseText"></p>
+  <div class="btns">
+    <button id="pResume" class="primary">继续</button>
+    <button id="pRestart">重来</button>
+    <button id="pMenu" class="ghost">回到选关</button>
+  </div>
 </section>
 
 <section class="panel" id="result" hidden>
@@ -578,6 +593,7 @@ function doBeatStep(st){
 }
 function doCall(c, st){
   G.pulse = 1; G.cueFlash = 1;
+  if (!G.main){ lightningLost(); return; }
   const m = G.main, vx = tgtX();
   // leftovers (small tips from earlier rounds) creep outward
   for (const t of smallTips()){ if (!t.fresh){ t.a += (t.x > lineX(t.y) ? -1 : 1)*0.12; t.a = clamp(t.a, 0.2, PI - 0.2); grow(t, 1.6, 0.15); } }
@@ -607,7 +623,12 @@ function judgeMiss(rp){
 }
 
 /* ---------------- ending ---------------- */
+function lightningLost(){
+  if (G.lost) return; G.lost = true;
+  openPause('闪电断了', '闪电一条都不剩了，这一局没法继续。', false);
+}
 function startLanding(){
+  if (!G.main){ lightningLost(); return; }
   G.phase = 'land'; G.lt = 0; G.inResp = false;
   for (const t of G.tips) t.fresh = false;
   sfx.startSlow();
@@ -695,7 +716,7 @@ function showResult(){
     `<dt>劈到了谁</dt><dd>${resultName}</dd>`;
   $('rNext').textContent = G.lv === LEVELS.length - 1 ? '从头再来' : '下一关';
   if (!best[G.lv] || r.score > best[G.lv]){ best[G.lv] = r.score; try { localStorage.setItem('tdlp-rhythm-best8', JSON.stringify(best)); } catch(e){} }
-  $('result').hidden = false; $('hud').hidden = true; $('bottom').hidden = true;
+  $('result').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
 }
 
 /* ---------------- effects ---------------- */
@@ -723,7 +744,7 @@ function startLevel(i){
   sfx.init(); sfx.loadSamples(); sfx.stopBeds(0.2);
   newGame(i, 'select');
   $('menu').hidden = true; $('result').hidden = true;
-  $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false;
+  $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false; $('pauseBtn').hidden = false; $('pause').hidden = true;
   $('lvName').textContent = G.L.name; $('tgName').textContent = '节奏：' + G.L.sub; $('progMax').textContent = String(G.L.rounds.length);
   $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下小坏蛋');
   const go = () => { if (SET.skip){ G.selected = true; begin(); G.zt = 0.45; } };
@@ -754,7 +775,34 @@ function startSong(){
 $('go').addEventListener('click', begin);
 $('rAgain').addEventListener('click', () => startLevel(G.lv));
 $('rNext').addEventListener('click', () => startLevel((G.lv + 1) % LEVELS.length));
-$('rMenu').addEventListener('click', () => { sfx.stopBeds(0.2); newGame(G.lv, 'menu'); buildMenu(); $('result').hidden = true; $('menu').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; });
+function toMenu(){
+  if (G.paused) unpause(true);
+  sfx.stopBeds(0.2); newGame(G.lv, 'menu'); buildMenu();
+  $('result').hidden = true; $('pause').hidden = true; $('menu').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
+}
+$('rMenu').addEventListener('click', toMenu);
+function openPause(title, text, canResume){
+  if (!G.paused){
+    G.paused = true; G.pausedAt = performance.now()/1000;
+    if (sfx.ac && sfx.ac.state === 'running' && sfx.ac.suspend) sfx.ac.suspend().catch(() => {});
+  }
+  $('pauseTitle').textContent = title; $('pauseText').textContent = text || '';
+  $('pResume').hidden = !canResume; $('pause').hidden = false;
+}
+function unpause(silent){
+  if (!G.paused) return;
+  if (!G.useAC) G.t0 += performance.now()/1000 - G.pausedAt;
+  G.paused = false; last = performance.now();
+  if (sfx.ac && sfx.ac.resume) sfx.ac.resume().catch(() => {});
+  if (!silent) $('pause').hidden = true;
+}
+$('pauseBtn').addEventListener('click', () => {
+  if (G.phase === 'menu' || G.phase === 'result') return;
+  openPause('暂停', '', true);
+});
+$('pResume').addEventListener('click', () => unpause(false));
+$('pRestart').addEventListener('click', () => { unpause(true); $('pause').hidden = true; startLevel(G.lv); });
+$('pMenu').addEventListener('click', toMenu);
 function openSettings(){ sfx.init(); $('settings').hidden = false; }
 $('sound').addEventListener('click', openSettings);
 $('openSet').addEventListener('click', openSettings);
@@ -794,6 +842,7 @@ cv.addEventListener('pointerdown', e => {
   let hit = null, hd = 1e9;
   for (const t of G.tips){ const [sx, sy] = w2s(...tipPos(t)); const d = Math.hypot(x - sx, y - sy); if (d < 52 && d < hd){ hd = d; hit = t; } }
   if (!hit){ tapText(x, y - 24, '没点到球', '#959bc8'); return; }
+  if (hit === G.main && G.tips.length <= 1){ sfx.dull(); tapText(x, y - 28, '最后一条，别点', '#ff4d5e'); return; }
   const perfect = onBeat && rd <= WIN_P;
   if (onBeat) rp.done = true;
   const [wx, wy] = tipPos(hit);
@@ -1340,7 +1389,8 @@ function drawPole(o, u){
 let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
-  update(dt); render(); requestAnimationFrame(frame);
+  if (!G.paused) update(dt);
+  render(); requestAnimationFrame(frame);
 }
 addEventListener('resize', resize);
 newGame(0, 'menu'); resize(); buildMenu();
