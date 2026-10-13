@@ -114,7 +114,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 21:35 · 缩圈提示、更暗、去掉嗖</p>
+  <p class="ver">版本 10月13日 21:40 · 半透明缩圈、默认设置</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -1118,7 +1118,7 @@ function drawTips(which){
     const lead = Math.min(G.beat, 0.6);
     if (dn > -0.06 && dn <= lead){
       const k = clamp(dn/lead, 0, 1), ballR = 14*2.2*0.5;          // matches the ball at full swell
-      const rr = ballR + 48*k, a = 0.35 + 0.65*(1 - k);
+      const rr = ballR + 48*k, a = 0.25 + 0.3*(1 - k);   // semi-transparent ring
       ctx.save(); ctx.lineWidth = 2.5 + 1.5*(1 - k);
       ctx.strokeStyle = `rgba(255,201,74,${a})`;
       for (const t of G.tips){
