@@ -73,6 +73,17 @@ canvas{position:fixed;inset:0;display:block}
 .sound{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);pointer-events:auto;font-size:12px;
   background:rgba(10,12,29,.6);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer}
 .ver{margin:0;font-size:11px;color:var(--mute);text-align:center;opacity:.8}
+.setbtn{font-family:var(--body);font-size:14px;font-weight:700;cursor:pointer;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--volt);padding:10px 14px}
+.settings{z-index:20;touch-action:auto}
+.settings h2{margin:0;font-family:var(--display);font-size:24px;color:var(--volt-hot)}
+.settings .vol{display:grid;grid-template-columns:1fr;gap:6px;font-size:14px;font-weight:700}
+.settings .vol{grid-template-columns:minmax(0,1fr) auto}
+.settings .vol span{grid-column:1/-1}
+.settings small{display:block;font-weight:400;font-size:12px;color:var(--mute)}
+.settings input[type=range]{width:100%;accent-color:var(--amber);touch-action:auto;min-height:28px}
+.settings .vol b{font-variant-numeric:tabular-nums;color:var(--amber);min-width:2.5em;text-align:right;align-self:center}
+.settings .chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:700;cursor:pointer}
+.settings .chk input{width:22px;height:22px;accent-color:var(--amber);margin:0;flex:none}
 @media (max-height:620px){.panel h1{font-size:40px}.grade{font-size:48px}}
 </style>
 
@@ -87,7 +98,7 @@ canvas{position:fixed;inset:0;display:block}
   <div class="hint" id="hint"></div>
   <button class="btn" id="go" hidden>开劈</button>
 </div>
-<button class="sound" id="sound" hidden>声音 开</button>
+<button class="sound" id="sound" hidden>音量</button>
 
 <section class="panel" id="menu">
   <h1>天打雷劈</h1>
@@ -99,7 +110,17 @@ canvas{position:fixed;inset:0;display:block}
     <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
-  <p class="ver">版本 10月13日 20:30 · 闪电走是「哆」，你按是「啦」</p>
+  <button class="setbtn" id="openSet">音量和设置</button>
+  <p class="ver">版本 10月13日 20:40 · 可调音量、可跳过开场</p>
+</section>
+
+<section class="panel settings" id="settings" hidden>
+  <h2>音量和设置</h2>
+  <label class="vol" for="v_music"><span>背景音乐<small>鼓、沙锤、贝斯</small></span><input type="range" id="v_music" min="0" max="100" step="5"><b id="l_music">80</b></label>
+  <label class="vol" for="v_fx"><span>闪电音效<small>“哆”“啦”和点击声</small></span><input type="range" id="v_fx" min="0" max="100" step="5"><b id="l_fx">80</b></label>
+  <label class="vol" for="v_strike"><span>劈下来的声音<small>慢动作、炸裂、雷声</small></span><input type="range" id="v_strike" min="0" max="100" step="5"><b id="l_strike">80</b></label>
+  <label class="chk" for="skipIntro"><input type="checkbox" id="skipIntro"><span>跳过开场<small>选完关卡直接开始，不用点坏蛋、按开劈</small></span></label>
+  <button class="btn" id="closeSet">好了</button>
 </section>
 
 <section class="panel" id="result" hidden>
@@ -178,14 +199,19 @@ const sfx = {
       for (let i = 0; i < n; i++) d[i] = Math.random()*2 - 1;
       this.noise = b; this.master = this.ac.createGain(); this.master.gain.value = 0.75;
       const comp = this.ac.createDynamicsCompressor(); this.master.connect(comp); comp.connect(this.ac.destination);
+      this.bus = {};
+      for (const k of ['music', 'fx', 'strike']){ const g = this.ac.createGain(); g.connect(this.master); this.bus[k] = g; }
+      this.out = this.bus.fx; this.applyVolumes();
     } catch(e){ this.ac = null; }
   },
   ok(){ return this.ac && this.on; },
+  applyVolumes(){ if (!this.bus) return; for (const k in this.bus) this.bus[k].gain.value = Math.pow(SET.vol[k], 1.5)*1.4; },
+  via(bus, fn){ const prev = this.out; this.out = this.bus ? this.bus[bus] : null; try { fn(); } finally { this.out = prev; } },
   now(){ return this.ac ? this.ac.currentTime : 0; },
   env(node, t, a, d, peak){
     const g = this.ac.createGain(); g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
-    node.connect(g); g.connect(this.master); return g;
+    node.connect(g); g.connect(this.out || this.master); return g;
   },
   noiseSrc(t, dur, type, freq, q){
     const s = this.ac.createBufferSource(); s.buffer = this.noise; s.loop = true;
@@ -225,7 +251,7 @@ const sfx = {
       const g = this.ac.createGain(); g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.05, t + Math.min(0.4, dur*0.3));
       g.gain.setValueAtTime(0.05, t + dur*0.8); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.2);
-      o.connect(lp); lp.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.3);
+      o.connect(lp); lp.connect(g); g.connect(this.out || this.master); o.start(t); o.stop(t + dur + 0.3);
     }
   },
   smallGong(t){ if (!this.ok()) return; for (const [f, v] of [[820, 0.05], [1240, 0.035], [1630, 0.025]]) this.osc(t, 'triangle', f, f*0.985, 0.4, 0.002, 0.35, v); },
@@ -260,7 +286,7 @@ const sfx = {
     const t = this.now(), s = this.ac.createBufferSource(), g = this.ac.createGain();
     s.buffer = this.buf[k]; s.loop = !!loop;
     g.gain.setValueAtTime(fadeIn ? 0.0001 : gain, t); if (fadeIn) g.gain.exponentialRampToValueAtTime(gain, t + fadeIn);
-    s.connect(g); g.connect(this.master); s.start(t); return { s, g };
+    s.connect(g); g.connect(this.bus ? this.bus.strike : this.master); s.start(t); return { s, g };
   },
   stopBeds(fade){
     if (!this.ac) return; const t = this.now();
@@ -268,11 +294,11 @@ const sfx = {
     this.beds = [];
   },
   startSlow(){ this.stopBeds(0.2); const b = this.play('slow', 0.8, true, 0.3); if (b) this.beds.push(b); },
-  crack(){ if (!this.play('crack', 1.0) && this.ok()){ const t = this.now(); this.env(this.noiseSrc(t, 0.25, 'highpass', 900), t, 0.002, 0.22, 0.9); } },
+  crack(){ if (!this.play('crack', 1.0) && this.ok()){ const t = this.now(); this.via('strike', () => this.env(this.noiseSrc(t, 0.25, 'highpass', 900), t, 0.002, 0.22, 0.9)); } },
   boom(power){
     if (this.play('thunder', 0.75 + power*0.25) || !this.ok()) return;
     const t = this.now(), f = this.noiseSrc(t, 3, 'lowpass', 500);
-    f.frequency.setValueAtTime(500, t); f.frequency.exponentialRampToValueAtTime(70, t + 3); this.env(f, t, 0.06, 2.6, 0.8);
+    f.frequency.setValueAtTime(500, t); f.frequency.exponentialRampToValueAtTime(70, t + 3); this.via('strike', () => this.env(f, t, 0.06, 2.6, 0.8));
   }
 };
 
@@ -293,6 +319,9 @@ const LEVELS = [
   { group:'挑战', name:'第六关', sub:'咚咚锵 · 野猫会跑', villainName:'偷鱼野猫', victim:'bird', victimName:'小鸟', villain:{kind:'cat', x:-2.4, amp:2.2, freq:0.3}, others:[{kind:'pole', x:-8.6}, {kind:'hen', x:4.6}, {kind:'hen', x:7.4}], bpm:BPM, rounds:ROUNDS_HARD },
   { group:'挑战', name:'第七关', sub:'咚咚锵 · 田鼠乱窜', villainName:'窜地田鼠', villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}], bpm:BPM, rounds:ROUNDS_HARD },
 ];
+const SET = { vol:{ music:0.8, fx:0.8, strike:0.8 }, skip:false };
+try { const s0 = JSON.parse(localStorage.getItem('tdlp-rhythm-settings') || 'null'); if (s0){ Object.assign(SET.vol, s0.vol || {}); SET.skip = !!s0.skip; } } catch(e){}
+function saveSettings(){ try { localStorage.setItem('tdlp-rhythm-settings', JSON.stringify(SET)); } catch(e){} }
 let best = {};
 try { best = JSON.parse(localStorage.getItem('tdlp-rhythm-best7') || '{}') || {}; } catch(e){ best = {}; }
 
@@ -378,6 +407,7 @@ function scheduleAudio(now){
   while (G.ai < G.aev.length && G.aev[G.ai].t < now + 0.15){
     const e = G.aev[G.ai++], at = G.t0 + e.t;
     if (e.t < now - 0.05) continue;
+    sfx.out = sfx.bus ? sfx.bus[(e.f === 'do' || e.f === 'la') ? 'fx' : 'music'] : null;
     if (e.f === 'dong') sfx.dong(at); else if (e.f === 'qiang') sfx.qiang(at);
     else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
@@ -385,6 +415,7 @@ function scheduleAudio(now){
     else if (e.f === 'do') sfx.doNote(at); else if (e.f === 'la') sfx.laNote(at);
     else if (e.f === 'guide') sfx.guide(at); else if (e.f === 'pad') sfx.pad(at, e.a, e.d);
   }
+  if (sfx.bus) sfx.out = sfx.bus.fx;
 }
 function barInfo(now){
   const k = now/G.beat;
@@ -628,6 +659,7 @@ function startLevel(i){
   $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false;
   $('lvName').textContent = G.L.name; $('tgName').textContent = '节奏：' + G.L.sub; $('progMax').textContent = String(G.L.rounds.length);
   $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下小坏蛋');
+  if (SET.skip){ G.selected = true; begin(); G.zt = 0.45; }
 }
 function selectTarget(){
   if (G.selected) return;
@@ -653,7 +685,23 @@ $('go').addEventListener('click', begin);
 $('rAgain').addEventListener('click', () => startLevel(G.lv));
 $('rNext').addEventListener('click', () => startLevel((G.lv + 1) % LEVELS.length));
 $('rMenu').addEventListener('click', () => { sfx.stopBeds(0.2); newGame(G.lv, 'menu'); buildMenu(); $('result').hidden = true; $('menu').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; });
-$('sound').addEventListener('click', () => { sfx.on = !sfx.on; if (!sfx.on) sfx.stopBeds(0.1); $('sound').textContent = sfx.on ? '声音 开' : '声音 关'; });
+function openSettings(){ sfx.init(); $('settings').hidden = false; }
+$('sound').addEventListener('click', openSettings);
+$('openSet').addEventListener('click', openSettings);
+$('closeSet').addEventListener('click', () => { $('settings').hidden = true; });
+for (const k of ['music', 'fx', 'strike']){
+  const el = $('v_' + k), lab = $('l_' + k);
+  el.value = Math.round(SET.vol[k]*100); lab.textContent = el.value;
+  el.addEventListener('input', () => { SET.vol[k] = el.value/100; lab.textContent = el.value; sfx.applyVolumes(); saveSettings(); });
+  el.addEventListener('change', () => {   // short preview of that sound
+    sfx.init(); if (!sfx.ac) return; const t = sfx.now();
+    if (k === 'music') sfx.via('music', () => { sfx.kick(t); sfx.clap(t + 0.3); sfx.bass(t, 110); });
+    else if (k === 'fx') sfx.via('fx', () => { sfx.doNote(t); sfx.laNote(t + 0.3); });
+    else { sfx.loadSamples(); sfx.crack(); }
+  });
+}
+$('skipIntro').checked = SET.skip;
+$('skipIntro').addEventListener('change', () => { SET.skip = $('skipIntro').checked; saveSettings(); });
 
 cv.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY;
