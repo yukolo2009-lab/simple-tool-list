@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 21:50 · 修复闪电全断卡住、加暂停</p>
+  <p class="ver">版本 10月13日 22:20 · 关卡命名、劈中冲击、小动物道谢</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -376,23 +376,39 @@ const NOTICE_VAR = '这一关是变奏练习：闪电每轮敲的下数不一样
 const NOTICE_MIX = '这一关两种玩法混在一起：有时是固定长度的「同一音节」，有时是长短不一的变奏，还有带半拍的咚咚锵。\n还是看画面变暗、等圆圈缩到小球上再点。';
 const LEVELS = [
   // 同一音节: every lead and every answer takes the same 2 beats
-  { group:'同一音节', name:'第一关', sub:'1下', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
+  { group:'同一音节', name:'第一关', title:'黄鼠狼抓鸡', sub:'1下', villainName:'黄鼠狼', victim:'chick', victimName:'小鸡',
+    villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
     rounds:['c1','c1','c1','c1','c1','c1','c1','c1'] },
-  { group:'同一音节', name:'第二关', sub:'1下、2下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-3.2, amp:0, freq:0 }, others:[{kind:'hen', x:4.2}, {kind:'pole', x:-8.2}],
+  { group:'同一音节', name:'第二关', title:'野猫扑鸟', sub:'1下、2下', villainName:'野猫', victim:'bird', victimName:'小鸟',
+    villain:{ kind:'cat', x:-3.2, amp:0, freq:0 }, others:[{kind:'hen', x:4.2}, {kind:'pole', x:-8.2}],
     rounds:['c1','c1','c2','c2','c1','c2','c2','c1'] },
-  { group:'同一音节', name:'第三关', sub:'1下、2下、3下', villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:2.4, amp:0, freq:0 }, others:[{kind:'hen', x:-5.2}, {kind:'pole', x:7.6}],
+  { group:'同一音节', name:'第三关', title:'田鼠欺鸭', sub:'1下、2下、3下', villainName:'田鼠', victim:'duck', victimName:'小鸭',
+    villain:{ kind:'rat', x:2.4, amp:0, freq:0 }, others:[{kind:'hen', x:-5.2}, {kind:'pole', x:7.6}],
     rounds:['c1','c2','c3','c2','c3','c1','c3','c3'] },
   // 变奏: each round is as long as the lead needs
-  { group:'变奏', name:'第四关', sub:'变奏 · 1下、2下', notice:NOTICE_VAR, villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-1.8, amp:0, freq:0 }, others:[{kind:'hen', x:5.4}, {kind:'pole', x:-8.4}],
+  { group:'变奏', name:'第四关', title:'野猫捞鱼', sub:'变奏 · 1下、2下', notice:NOTICE_VAR, villainName:'野猫', victim:'fish', victimName:'小鱼',
+    villain:{ kind:'cat', x:-1.8, amp:0, freq:0 }, others:[{kind:'hen', x:5.4}, {kind:'pole', x:-8.4}],
     rounds:['one','one','one','two','one','two','two','one','two','two'] },
-  { group:'变奏', name:'第五关', sub:'变奏 · 1下、2下、3下', notice:NOTICE_VAR, villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
+  { group:'变奏', name:'第五关', title:'黄鼠狼追兔', sub:'变奏 · 1下、2下、3下', notice:NOTICE_VAR, villainName:'黄鼠狼', victim:'bunny', victimName:'小兔',
+    villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
     rounds:['one','two','threeq','one','two','threeq','two','threeq'] },
   // 混合
-  { group:'混合', name:'第六关', sub:'混合 · 野猫会跑', notice:NOTICE_MIX, villainName:'偷鱼野猫', victim:'bird', victimName:'小鸟', villain:{kind:'cat', x:-2.4, amp:2.2, freq:0.3}, others:[{kind:'pole', x:-8.6}, {kind:'hen', x:4.6}, {kind:'hen', x:7.4}],
+  { group:'混合', name:'第六关', title:'野猫抓蛙', sub:'混合 · 野猫会跑', notice:NOTICE_MIX, villainName:'野猫', victim:'frog', victimName:'小青蛙',
+    villain:{kind:'cat', x:-2.4, amp:2.2, freq:0.3}, others:[{kind:'pole', x:-8.6}, {kind:'hen', x:4.6}, {kind:'hen', x:7.4}],
     rounds:['c2','c3','two','threeq','three','c3','three','five'] },
-  { group:'混合', name:'第七关', sub:'混合 · 田鼠乱窜', notice:NOTICE_MIX, villainName:'窜地田鼠', villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}],
+  { group:'混合', name:'第七关', title:'田鼠乱窜', sub:'混合 · 追着小鸡乱窜', notice:NOTICE_MIX, villainName:'田鼠', victim:'chick', victimName:'小鸡',
+    villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}],
     rounds:['c3','three','five','c2','threeq','three','c3','five'] },
 ];
+// what each rescued animal says (alternates while it thanks you)
+const THANKS = {
+  chick: ['谢谢雷公！', '啾啾！你最帅！', '我要给你孵个蛋！'],
+  bird:  ['雷公大人万岁！', '给你唱首歌～♪', '啾～比心！'],
+  duck:  ['嘎！得救啦！', '谢谢雷公！嘎嘎！', '嘎嘎嘎～爱你！'],
+  fish:  ['吐个泡泡谢谢你～', '咕噜咕噜，雷公好！', '鱼生圆满了！'],
+  bunny: ['胡萝卜送给你！', '雷公最棒！', '蹦蹦～谢谢！'],
+  frog:  ['呱！谢谢雷公！', '呱呱呱～你好帅！', '给你表演个跳水！'],
+};
 const SET = { vol:{ music:1.0, fx:0.5, strike:0.1 }, skip:false, bpm:130 };   // defaults = the author's tuned settings
 try { const s0 = JSON.parse(localStorage.getItem('tdlp-rhythm-settings') || 'null'); if (s0){ Object.assign(SET.vol, s0.vol || {}); SET.skip = !!s0.skip; if (s0.bpm) SET.bpm = clamp(+s0.bpm, 60, 160); } } catch(e){}
 function saveSettings(){ try { localStorage.setItem('tdlp-rhythm-settings', JSON.stringify(SET)); } catch(e){} }
@@ -674,13 +690,20 @@ function startFinale(tip){
   G.power = power; G.result = { acc, power, mult, score, left };
 }
 function strike(){
-  G.flash = 1; G.shake = RM ? 0.12 : 0.6;
+  G.flash = 1; G.shake = RM ? 0.12 : 0.9;
   const v = villain(), w = G.winner;
+  // impact: hit-stop, camera punch, shockwave, big 轰, scorch, debris
+  G.hitStop = RM ? 0 : 0.14;
+  cam.s *= RM ? 1 : 1.3;
+  G.shock = { x:w.x, y:GROUND - 0.3, t:0 };
+  G.boomText = { t:0, txt:G.outcome === 'hit' ? '轰！' : '咔嚓！' };
+  G.scorch = { x:w.x };
+  for (let i = 0; i < 26; i++) G.parts.push({ x:w.x + rnd(-0.4, 0.4), y:GROUND - 0.1, vx:rnd(-7, 7), vy:rnd(-11, -4), life:rnd(0.6, 1.3), max:1.3, c:'#6b5a44', sz:rnd(2, 4.5), g:20, rock:true });
   for (let i = 0; i < 40; i++) G.parts.push({ x:w.x, y:GROUND - 0.1, vx:rnd(-6, 6), vy:rnd(-9, -2), life:rnd(0.4, 1), max:1, c:'#fff3b0', sz:rnd(1.5, 3), g:16 });
   if (G.outcome === 'hit'){
     v.state = 'char';
-    const vc = victimObj(); vc.state = 'free'; vc.dir = Math.sign(vc.x - v.x) || 1;
-    worldText(vc.x, GROUND - 1.8, '谢谢！', '#ff9ab0', 22);
+    const vc = victimObj(); vc.state = 'grateful'; vc.dir = Math.sign(v.x - vc.x) || 1; vc.thankT = 0;
+    vc.hopTo = vc.x + Math.sign(vc.x - v.x)*0.8;   // a little hop away from the smoking villain
     for (let i = 0; i < 10; i++) G.parts.push({ x:vc.x, y:GROUND - 0.8, vx:rnd(-1.5, 1.5), vy:rnd(-3, -1), life:1.2, max:1.2, c:'#ff7a9a', sz:6, g:0, heart:true });
     worldText(v.x, GROUND - 3.4, G.power >= 25 ? '天罚！' : G.power >= 12 ? '焦了' : '麻了一下', '#ffc94a', 26);
   } else {
@@ -698,7 +721,7 @@ function showResult(){
   const r = G.result, o = G.outcome, v = G.L.villainName;
   const grade = o !== 'hit' ? '劈歪了' : (r.power >= 25 && r.acc >= 0.8) ? '天罚' : r.power >= 12 ? '粗雷' : '细雷';
   const lines = {
-    hit: grade === '天罚' ? `${v}被劈成了爆炸头，${victimName()}得救了！` : grade === '粗雷' ? `劈中了，${victimName()}得救了！漏了几下，雷没那么粗` : `${victimName()}得救了！小叉剩太多，${v}只是麻了一下`,
+    hit: grade === '天罚' ? `${v}被劈成了爆炸头，${victimName()}感动得一直鞠躬！` : grade === '粗雷' ? `劈中了，${victimName()}得救了！漏了几下，雷没那么粗` : `${victimName()}得救了！小叉剩太多，${v}只是麻了一下`,
     hen: `劈到老母鸡了！${v}趁机跑了`,
     pole: `雷被电线杆抢走了，${v}跑了`,
     ground: `劈到地上了，${v}跑了`
@@ -735,7 +758,7 @@ function buildMenu(){
   LEVELS.forEach((L, i) => {
     if (L.group !== grp){ grp = L.group; html += `<div class="grp">${{ '同一音节':'同一音节 · 每轮一样长', '变奏':'变奏 · 每轮长短不一', '混合':'混合 · 两种都有' }[grp]}</div>`; }
     const b = best[i]; const sub = L.sub + (b != null ? ` · 最高 ${b} 分` : '');
-    html += `<button data-i="${i}" class="${b != null ? 'best' : ''}">${L.name}<span>${sub}</span></button>`;
+    html += `<button data-i="${i}" class="${b != null ? 'best' : ''}">${L.name} · ${L.title}<span>${sub}</span></button>`;
   });
   $('levels').innerHTML = html;
   $('levels').querySelectorAll('button').forEach(b => b.addEventListener('click', () => startLevel(+b.dataset.i)));
@@ -745,10 +768,10 @@ function startLevel(i){
   newGame(i, 'select');
   $('menu').hidden = true; $('result').hidden = true;
   $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false; $('pauseBtn').hidden = false; $('pause').hidden = true;
-  $('lvName').textContent = G.L.name; $('tgName').textContent = '节奏：' + G.L.sub; $('progMax').textContent = String(G.L.rounds.length);
+  $('lvName').textContent = G.L.name + ' · ' + G.L.title; $('tgName').textContent = '节奏：' + G.L.sub; $('progMax').textContent = String(G.L.rounds.length);
   $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下小坏蛋');
   const go = () => { if (SET.skip){ G.selected = true; begin(); G.zt = 0.45; } };
-  if (G.L.notice){ $('noticeText').textContent = G.L.notice; $('noticeTitle').textContent = G.L.name + ' · ' + G.L.sub; $('notice').hidden = false; G.afterNotice = go; }
+  if (G.L.notice){ $('noticeText').textContent = G.L.notice; $('noticeTitle').textContent = G.L.name + ' · ' + G.L.title; $('notice').hidden = false; G.afterNotice = go; }
   else go();
 }
 $('noticeOk').addEventListener('click', () => { $('notice').hidden = true; sfx.init(); const f = G.afterNotice; G.afterNotice = null; if (f) f(); });
@@ -877,6 +900,12 @@ function camTarget(){
     if (ft < FIN.pause) return { x:cam.x, y:cam.y, s:cam.s };
     if (ft < FIN.climbEnd){ const p = boltPointAt(climbFrac()), s = S.levels[0]*1.1; return { x:p.x, y:p.y - 0.08*H/s, s, sp:14 }; }
     if (ft < FIN.impact) return { x:0, y:GROUND/2 + 2, s:S.full, sp:7 };
+    if (G.outcome === 'hit'){
+      // frame both the smoking villain and the thankful animal
+      const v = villain(), vc = victimObj(), dx = Math.abs(v.x - vc.x) + 4.2;
+      const s2 = Math.max(S.full, Math.min(S.levels[0]*0.8, S.playW*0.92/dx));
+      return { x:(v.x + vc.x)/2, y:GROUND - 2.2, s:s2, sp:4 };
+    }
     return { x:G.winner.x, y:GROUND - 2.2, s:S.levels[0]*0.8, sp:4 };
   }
   if (G.phase === 'land'){
@@ -906,7 +935,13 @@ function update(dt){
   if (v.state === 'flee') v.x += v.dir*7*dt;
   const vc = victimObj();
   if (vc.state === 'scared' && v.state === 'idle'){ const gap = Math.max(VGAP, Math.max(cam.s*VSCALE, 34)*1.55/cam.s), tx = v.x + v.dir*gap; vc.x += (tx - vc.x)*Math.min(1, dt*6); vc.dir = v.dir; }
-  if (vc.state === 'free'){ vc.x += vc.dir*5*dt; if (Math.random() < dt*5) G.parts.push({ x:vc.x, y:GROUND - 1, vx:rnd(-0.5, 0.5), vy:-1.5, life:1.2, max:1.2, c:'#ff7a9a', sz:5, g:0, heart:true }); }
+  if (vc.state === 'grateful'){
+    vc.thankT += dt;
+    if (vc.hopTo != null) vc.x += (vc.hopTo - vc.x)*Math.min(1, dt*5);
+    if (Math.random() < dt*4) G.parts.push({ x:vc.x + rnd(-0.4, 0.4), y:GROUND - 1.2, vx:rnd(-0.4, 0.4), vy:-1.4, life:1.4, max:1.4, c:'#ff7a9a', sz:rnd(4, 6), g:0, heart:true });
+  }
+  if (G.shock) G.shock.t += dt;
+  if (G.boomText) G.boomText.t += dt;
   for (const o of G.objs){
     if (o.state === 'char' && Math.random() < dt*7) G.parts.push({ x:o.x + rnd(-0.3, 0.3), y:GROUND - 1.1, vx:rnd(-0.3, 0.3), vy:rnd(-1.6, -0.9), life:1.6, max:1.6, c:'#6a6d80', sz:rnd(4, 8), g:-0.2, smoke:true });
     if (o.state === 'spark' && Math.random() < dt*10) G.parts.push({ x:o.x + rnd(-0.6, 0.6), y:GROUND - 2.6, vx:rnd(-2, 2), vy:rnd(-2, 1), life:0.4, max:0.4, c:'#bfe6ff', sz:2, g:6 });
@@ -994,6 +1029,8 @@ function render(){
   if (G.shake > 0){ const m = G.shake*16; ctx.translate(rnd(-m, m), rnd(-m, m)); }
   drawCloud(); drawGround();
   if (G.selected && G.phase !== 'result' && !(G.phase === 'finale' && G.struck)) drawGuide();
+  if (G.scorch){ const [sx, sy] = w2s(G.scorch.x, GROUND); const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, cam.s*1.6);
+    rg.addColorStop(0, 'rgba(10,8,6,0.9)'); rg.addColorStop(1, 'rgba(10,8,6,0)'); ctx.save(); ctx.translate(sx, sy); ctx.scale(1, 0.25); ctx.translate(-sx, -sy); ctx.fillStyle = rg; circle(sx, sy, cam.s*1.6); ctx.restore(); }
   for (const o of G.objs) drawObj(o);
   drawStreamers();
   if (G.phase === 'select') drawSelectRing();
@@ -1023,6 +1060,7 @@ function render(){
     }
   }
   if (G.phase === 'play') drawCue();
+  drawImpact();
   drawTexts(false);
   if (G.flash > 0.01){ ctx.fillStyle = `rgba(240,246,255,${G.flash*0.85})`; ctx.fillRect(0, 0, W, H); }
 }
@@ -1062,6 +1100,29 @@ function drawCue(){
   const ph = clamp((now/G.beat - segA)/total, 0, 1);
   ctx.fillStyle = '#fff'; ctx.fillRect(xAt(ph*total) + 2, y - 12, 2, 24);
   if (G.combo >= 2){ ctx.textAlign = 'center'; ctx.font = `bold 14px ${FONT_B}`; ctx.fillStyle = '#ffc94a'; ctx.fillText(`连对 ${G.combo} 下`, W/2, y0 + 44); }
+}
+function drawImpact(){
+  if (G.shock && G.shock.t < 0.7){
+    const [sx, sy] = w2s(G.shock.x, G.shock.y), k = G.shock.t/0.7;
+    for (const [d, w] of [[0, 14], [0.12, 6]]){
+      const kk = clamp(k - d, 0, 1); if (kk <= 0) continue;
+      ctx.strokeStyle = `rgba(255,255,255,${0.9*(1 - kk)})`; ctx.lineWidth = w*(1 - kk) + 1;
+      ctx.beginPath(); ctx.arc(sx, sy, 20 + kk*Math.max(W, H)*0.9, 0, 2*PI); ctx.stroke();
+    }
+    // speed lines
+    if (k < 0.4){ ctx.strokeStyle = `rgba(255,240,180,${0.6*(1 - k/0.4)})`; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i < 20; i++){ const a = i/20*2*PI + 0.3, r0 = 60 + k*200, r1 = r0 + 140; ctx.moveTo(sx + Math.cos(a)*r0, sy + Math.sin(a)*r0); ctx.lineTo(sx + Math.cos(a)*r1, sy + Math.sin(a)*r1); }
+      ctx.stroke(); }
+  }
+  if (G.boomText && G.boomText.t < 1.3){
+    const t = G.boomText.t, sc = t < 0.12 ? 2.2 - t/0.12*1.2 : 1 + 0.05*Math.sin(t*30)*Math.max(0, 1 - t*2), a = t < 1 ? 1 : 1 - (t - 1)/0.3;
+    ctx.save(); ctx.translate(W/2, H*0.3); ctx.rotate(-0.12); ctx.scale(sc, sc); ctx.globalAlpha = clamp(a, 0, 1);
+    ctx.font = `900 84px ${FONT_D}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 14; ctx.strokeStyle = '#1b1030'; ctx.strokeText(G.boomText.txt, 0, 0);
+    ctx.lineWidth = 5; ctx.strokeStyle = '#ff4d5e'; ctx.strokeText(G.boomText.txt, 0, 0);
+    ctx.fillStyle = '#ffe14a'; ctx.fillText(G.boomText.txt, 0, 0);
+    ctx.restore();
+  }
 }
 function circle(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, 2*PI); ctx.fill(); }
 function drawCloud(){
@@ -1240,6 +1301,7 @@ function drawParts(){
     const [sx, sy] = w2s(p.x, p.y), a = clamp(p.life/p.max, 0, 1);
     if (p.smoke){ ctx.fillStyle = `rgba(110,112,130,${0.35*a})`; circle(sx, sy, p.sz*(2 - a)*cam.s/22); continue; }
     ctx.fillStyle = p.c; ctx.globalAlpha = a;
+    if (p.rock){ ctx.fillRect(sx - p.sz/2, sy - p.sz/2, p.sz, p.sz); ctx.globalAlpha = 1; continue; }
     if (p.heart){ ctx.font = `${p.sz*3}px ${FONT_B}`; ctx.textAlign = 'center'; ctx.fillText('♥', sx, sy); ctx.globalAlpha = 1; continue; }
     if (p.feather){ ctx.save(); ctx.translate(sx, sy); ctx.rotate(p.life*3); ctx.fillRect(-p.sz, -p.sz/3, p.sz*2, p.sz*0.7); ctx.restore(); }
     else circle(sx, sy, p.sz);
@@ -1277,7 +1339,7 @@ function drawObj(o){
   if (o.villain && !ch){ ctx.shadowColor = 'rgba(255,70,70,0.95)'; ctx.shadowBlur = 14; }
   const bob = o.state === 'idle' && o.villain ? Math.abs(Math.sin(G.t*(o.amp ? 9 : 3)))*0.06 : o.state === 'flee' ? Math.abs(Math.sin(G.t*18))*0.12 : 0;
   ctx.translate(0, -bob);
-  if (o.victim){ drawVictim(o); ctx.restore(); if (G.phase !== 'result' && o.state === 'scared') drawHelpBubble(sx, gy - u*1.1); return; }
+  if (o.victim){ drawVictim(o); ctx.restore(); if (G.phase !== 'result' && o.state === 'scared') drawHelpBubble(sx, gy - u*1.1); if (o.state === 'grateful') drawThanksBubble(sx, gy - u*1.15, o); return; }
   if (o.villain && o.state === 'idle') ctx.translate((o.dir || 1)*Math.pow(Math.abs(Math.sin(G.t*3.2)), 4)*0.25, 0);
   if (o.kind === 'pole'){ drawPole(o, u); ctx.restore(); return; }
   if (o.kind === 'hen'){ drawHen(ch); ctx.restore(); return; }
@@ -1319,6 +1381,11 @@ function drawObj(o){
   } else { ctx.fillStyle = '#0d0d10'; for (let i = 0; i < 6; i++) circle(hx - 0.25 + i*0.1, hy - 0.3 - Math.sin(i*1.3)*0.08, 0.14); }
   ctx.restore();
   if (o.villain && o.state !== 'char' && G.phase !== 'result') drawVillainTag(sx, gy - u*1.15);
+  if (o.villain && o.state === 'char'){
+    ctx.save(); ctx.font = `bold ${Math.round(u*0.32)}px ${FONT_B}`; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe14a';
+    for (let i = 0; i < 3; i++){ const a = G.t*4 + i*2*PI/3; ctx.fillText('★', sx + (o.dir || 1)*u*0.55 + Math.cos(a)*u*0.45, gy - u*1.15 + Math.sin(a)*u*0.12); }
+    ctx.restore();
+  }
 }
 function drawVillainTag(x, y){
   const b = Math.abs(Math.sin(G.t*5))*8;
@@ -1333,16 +1400,52 @@ function drawVillainTag(x, y){
   ctx.restore();
 }
 function drawVictim(o){
-  const scared = o.state === 'scared', free = o.state === 'free';
-  const shake = scared ? Math.sin(G.t*40)*0.03 : 0, hop = free ? Math.abs(Math.sin(G.t*14))*0.35 : 0;
+  const scared = o.state === 'scared', glad = o.state === 'grateful';
+  const shake = scared ? Math.sin(G.t*40)*0.03 : 0;
+  // grateful: little hops + deep bows toward the lightning
+  const tt = o.thankT || 0, hop = glad ? Math.abs(Math.sin(tt*7))*0.3 : 0, bow = glad ? Math.max(0, Math.sin(tt*3.5))*0.55 : 0;
   ctx.translate(shake, -hop); ctx.scale(o.dir || 1, 1);
-  const flap = Math.sin(G.t*(free ? 30 : 22))*0.5;
+  if (bow){ ctx.translate(0.15, 0); ctx.rotate(bow*0.6); ctx.translate(-0.15, 0); }
+  const flap = Math.sin(G.t*(glad ? 30 : 22))*0.5;
+  let ex = 0.25, ey = -0.64;
   if (o.kind === 'bird'){
     ctx.fillStyle = '#5fb4ff'; ell(0, -0.42, 0.32, 0.24);
     ctx.fillStyle = '#3a8fe0'; ell(-0.05, -0.5, 0.2, 0.08, -0.6 + flap);
     ctx.fillStyle = '#5fb4ff'; circle(0.25, -0.62, 0.17);
     ctx.fillStyle = '#ffb02e'; ctx.beginPath(); ctx.moveTo(0.38, -0.64); ctx.lineTo(0.52, -0.6); ctx.lineTo(0.38, -0.56); ctx.fill();
     ctx.fillStyle = '#3a8fe0'; ctx.beginPath(); ctx.moveTo(-0.28, -0.45); ctx.lineTo(-0.5, -0.55); ctx.lineTo(-0.48, -0.36); ctx.fill();
+    ex = 0.3; ey = -0.66;
+  } else if (o.kind === 'duck'){
+    ctx.fillStyle = '#fff3a0'; ell(0, -0.3, 0.34, 0.24);
+    ctx.fillStyle = '#ffe36a'; ell(-0.08, -0.34, 0.16, 0.07, -0.3 + flap);
+    ctx.fillStyle = '#fff3a0'; circle(0.22, -0.6, 0.18);
+    ctx.fillStyle = '#ff8c1a'; ell(0.42, -0.56, 0.12, 0.05);
+    ctx.fillStyle = '#ff8c1a'; ell(-0.05, -0.03, 0.08, 0.03); ell(0.1, -0.03, 0.08, 0.03);
+    ex = 0.26; ey = -0.64;
+  } else if (o.kind === 'fish'){
+    // a little puddle, the fish flops in it
+    ctx.fillStyle = 'rgba(90,150,220,0.55)'; ell(0, -0.03, 0.6, 0.08);
+    const flop = glad ? Math.sin(tt*9)*0.35 : Math.sin(G.t*14)*0.15;
+    ctx.save(); ctx.translate(0, -0.3); ctx.rotate(flop);
+    ctx.fillStyle = '#ff9a3a'; ell(0, 0, 0.32, 0.16);
+    ctx.beginPath(); ctx.moveTo(-0.28, 0); ctx.lineTo(-0.52, -0.16); ctx.lineTo(-0.52, 0.16); ctx.fill();
+    ctx.fillStyle = '#ffc070'; ell(0.02, 0.05, 0.16, 0.06);
+    ctx.restore(); ex = 0.18; ey = -0.33;
+  } else if (o.kind === 'bunny'){
+    ctx.fillStyle = '#f4f0f6'; ell(0, -0.3, 0.3, 0.26);
+    circle(0.2, -0.6, 0.2);
+    ctx.save(); ctx.translate(0.14, -0.78); ctx.rotate(-0.2 + flap*0.15); ell(0, -0.22, 0.06, 0.22); ctx.restore();
+    ctx.save(); ctx.translate(0.27, -0.78); ctx.rotate(0.15 - flap*0.15); ell(0, -0.22, 0.06, 0.22); ctx.restore();
+    ctx.fillStyle = '#ffb3c8'; ell(0.14, -1.0, 0.025, 0.12, -0.2); ell(0.27, -1.0, 0.025, 0.12, 0.15);
+    ctx.fillStyle = '#fff'; circle(-0.28, -0.32, 0.09);
+    ctx.fillStyle = '#ff8fb0'; circle(0.39, -0.58, 0.035);
+    ex = 0.27; ey = -0.64;
+  } else if (o.kind === 'frog'){
+    ctx.fillStyle = '#5ccf5c'; ell(0, -0.26, 0.34, 0.22);
+    circle(0.08, -0.5, 0.11); circle(0.3, -0.5, 0.11);
+    ctx.fillStyle = '#3fae3f'; ell(-0.2, -0.06, 0.14, 0.05); ell(0.22, -0.06, 0.14, 0.05);
+    ctx.strokeStyle = '#1e5e1e'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.arc(0.2, -0.3, 0.12, 0.2, PI - 0.2); ctx.stroke();
+    ex = 0.3; ey = -0.52;
   } else {
     ctx.fillStyle = '#ffd84a'; ell(0, -0.32, 0.3, 0.26);
     ctx.fillStyle = '#ffc61a'; ell(-0.06, -0.36, 0.14, 0.07, -0.4 + flap);
@@ -1350,10 +1453,28 @@ function drawVictim(o){
     ctx.fillStyle = '#ff9a1a'; ctx.beginPath(); ctx.moveTo(0.34, -0.62); ctx.lineTo(0.48, -0.58); ctx.lineTo(0.34, -0.54); ctx.fill();
     ctx.strokeStyle = '#ff9a1a'; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(-0.06, -0.08); ctx.lineTo(-0.06, 0); ctx.moveTo(0.08, -0.08); ctx.lineTo(0.08, 0); ctx.stroke();
   }
-  const ex = o.kind === 'bird' ? 0.3 : 0.25, ey = o.kind === 'bird' ? -0.66 : -0.64;
-  ctx.fillStyle = '#fff'; circle(ex, ey, scared ? 0.065 : 0.05);
-  ctx.fillStyle = '#000'; circle(ex + 0.01, ey, free ? 0.03 : 0.022);
-  if (scared){ ctx.fillStyle = '#9fd4ff'; ell(ex - 0.2, ey - 0.12, 0.035, 0.06); }
+  if (glad){
+    // heart eyes + rosy cheek
+    ctx.fillStyle = '#ff3d6e'; const hr = 0.06;
+    ctx.beginPath(); ctx.arc(ex - hr*0.5, ey - hr*0.3, hr*0.6, PI, 0); ctx.arc(ex + hr*0.5, ey - hr*0.3, hr*0.6, PI, 0); ctx.lineTo(ex, ey + hr*0.9); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,120,150,0.5)'; ell(ex - 0.08, ey + 0.1, 0.06, 0.035);
+  } else {
+    ctx.fillStyle = '#fff'; circle(ex, ey, scared ? 0.065 : 0.05);
+    ctx.fillStyle = '#000'; circle(ex + 0.01, ey, 0.022);
+    if (scared){ ctx.fillStyle = '#9fd4ff'; ell(ex - 0.2, ey - 0.12, 0.035, 0.06); }
+  }
+}
+function drawThanksBubble(x, y, o){
+  const lines = THANKS[o.kind] || THANKS.chick, i = Math.floor((o.thankT || 0)/1.3) % lines.length, txt = lines[i];
+  const pop = Math.min(1, ((o.thankT || 0) % 1.3)/0.12), b = Math.abs(Math.sin(G.t*6))*3;
+  ctx.save(); ctx.translate(x, y - b); ctx.scale(0.6 + 0.4*pop, 0.6 + 0.4*pop);
+  ctx.font = `800 15px ${FONT_D}`; ctx.textAlign = 'center';
+  const w = ctx.measureText(txt).width + 20;
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ff7a9a'; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-w/2, -34, w, 26, 13) : ctx.rect(-w/2, -34, w, 26); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6, -9); ctx.lineTo(6, -9); ctx.lineTo(0, 0); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#e8336a'; ctx.fillText(txt, 0, -16);
+  ctx.restore();
 }
 function drawHelpBubble(x, y){
   const b = Math.abs(Math.sin(G.t*7))*4;
@@ -1389,7 +1510,8 @@ function drawPole(o, u){
 let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
-  if (!G.paused) update(dt);
+  if (G.hitStop > 0){ G.hitStop -= dt; G.flash = Math.max(G.flash, 0.6); }
+  else if (!G.paused) update(dt);
   render(); requestAnimationFrame(frame);
 }
 addEventListener('resize', resize);
