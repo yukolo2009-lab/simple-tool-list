@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 22:20 · 关卡命名、劈中冲击、小动物道谢</p>
+  <p class="ver">版本 10月13日 22:45 · 新增第八关：无限深渊</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -192,7 +192,7 @@ PATTERNS.c2 = { name:'2下', span:2, hits:[[0,'d'],[1,'q']] };
 PATTERNS.c3 = { name:'3下', span:2, hits:[[0,'d'],[2/3,'d'],[4/3,'q']] };
 const HITS_LABEL = { c1:'1下', c2:'2下', c3:'3下（三连音）',  one:'1下', two:'2下', threeq:'3下', three:'咚咚锵', five:'5下' };
 const ROUNDS_HARD = ['one','one','three','three','five','five'];
-const rounds = () => G.L.rounds;
+const rounds = () => G.rr || G.L.rounds;
 // how "full" the backing groove is (0..2), grows through the song
 const secOf = r => Math.min(2, Math.floor(r*3/rounds().length));
 const WIN_P = 0.08, WIN_G = 0.18;
@@ -373,6 +373,7 @@ const sfx = {
 /* ---------------- levels ---------------- */
 const WEASEL = { kind:'weasel', x:3.6, amp:0, freq:0 };
 const NOTICE_VAR = '这一关是变奏练习：闪电每轮敲的下数不一样，每轮占的时间也跟着变：敲几下就占几拍，你紧接着跟几下。\n闪电是低沉的「咚」，画面一暗就轮到你：小球外的圆圈缩到和小球一样大时，点它。';
+const NOTICE_ENDLESS = '无限深渊：每劈中一个坏蛋，大地就裂成两半，坏蛋掉进裂缝，闪电继续往下一层钻。\n每下一层，速度 +5。劈歪就结束，看你能劈穿几层！';
 const NOTICE_MIX = '这一关两种玩法混在一起：有时是固定长度的「同一音节」，有时是长短不一的变奏，还有带半拍的咚咚锵。\n还是看画面变暗、等圆圈缩到小球上再点。';
 const LEVELS = [
   // 同一音节: every lead and every answer takes the same 2 beats
@@ -399,7 +400,31 @@ const LEVELS = [
   { group:'混合', name:'第七关', title:'田鼠乱窜', sub:'混合 · 追着小鸡乱窜', notice:NOTICE_MIX, villainName:'田鼠', victim:'chick', victimName:'小鸡',
     villain:{kind:'rat', x:1.2, amp:4.5, freq:0.45}, others:[{kind:'hen', x:-6.4}, {kind:'pole', x:3.4}, {kind:'hen', x:8.6}],
     rounds:['c3','three','five','c2','threeq','three','c3','five'] },
+  // endless
+  { group:'无限', name:'第八关', title:'无限深渊', sub:'每下一层，速度+5', endless:true, notice:NOTICE_ENDLESS, villainName:'黄鼠狼', victim:'chick', victimName:'小鸡',
+    villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}], rounds:['c1','c1','c2','c1','c2','c2'] },
 ];
+const CAST = [
+  ['weasel', '黄鼠狼', 'chick', '小鸡'], ['cat', '野猫', 'bird', '小鸟'], ['rat', '田鼠', 'duck', '小鸭'],
+  ['cat', '野猫', 'fish', '小鱼'], ['weasel', '黄鼠狼', 'bunny', '小兔'], ['cat', '野猫', 'frog', '小青蛙'],
+];
+const LAYER_POOLS = [['c1', 'c2'], ['c1', 'c2', 'c3'], ['c2', 'c3', 'one', 'two'], ['c3', 'one', 'two', 'threeq'], ['c3', 'two', 'threeq', 'three', 'five', 'c2']];
+const layerBpm = n => SET.bpm + 5*n;
+// set up layer n of the endless level around the lightning's entry point ox
+function applyLayer(n, ox){
+  const [vk, vn, tk, tn] = CAST[n % CAST.length];
+  const pool = LAYER_POOLS[Math.min(n, LAYER_POOLS.length - 1)];
+  G.rr = [pool[0]]; for (let i = 1; i < 6; i++) G.rr.push(pool[Math.floor(Math.random()*pool.length)]);
+  const vx = clamp(ox + rnd(-5, 5), -8, 8), amp = n >= 3 ? Math.min(4, (n - 2)*1.2) : 0;
+  const v = { kind:vk, villain:true, x:vx, x0:vx, amp, freq:0.3 + Math.min(0.3, n*0.03), state:'idle' };
+  v.dir = vx > ox ? -1 : 1;
+  const victim = { kind:tk, victim:true, state:'scared', x:vx + v.dir*VGAP, dir:-v.dir };
+  const side = vx > 0 ? -1 : 1;
+  G.objs = [v, victim, { kind:'hen', x:vx + side*6.5, state:'idle', dir:1 }, { kind:'pole', x:vx - side*7.5, state:'idle', dir:1 }];
+  G.cast = { villainName:vn, victimName:tn };
+  G.ox = ox; G.layer = n;
+  G.beat = 60/layerBpm(n); G.bar = G.beat*4;
+}
 // what each rescued animal says (alternates while it thanks you)
 const THANKS = {
   chick: ['谢谢雷公！', '啾啾！你最帅！', '我要给你孵个蛋！'],
@@ -435,12 +460,14 @@ function newGame(i, phase){
     selected:false, parts:[], texts:[], flash:0, shake:0, pulse:0, lb:0,
     winner:null, struck:false, shown:false, cracked:false, topFlash:false, boomed:false
   };
+  if (L.endless){ G.endless = true; applyLayer(0, 0); G.lstat = { perfect:0, good:0, off:0, wrong:0 }; }
 }
 const villain = () => G.objs[0];
 const victimObj = () => G.objs[1];
-const victimName = () => G.L.victimName || '小鸡';
+const victimName = () => (G.cast && G.cast.victimName) || G.L.victimName || '小鸡';
+const villainName = () => (G.cast && G.cast.villainName) || G.L.villainName;
 const tgtX = () => villain().x;
-const lineX = y => tgtX()*y/GROUND;
+const lineX = y => (G.ox || 0) + (tgtX() - (G.ox || 0))*y/GROUND;
 
 /* ---------------- song clock & schedule ---------------- */
 function clock(){
@@ -639,6 +666,52 @@ function judgeMiss(rp){
 }
 
 /* ---------------- ending ---------------- */
+function startDescent(){
+  G.phase = 'descend'; G.dt2 = 0;
+  G.crack = { x:G.winner.x, shift:0 };
+  const v = villain(); v.state = 'fall'; v.fy = 0; v.fv = 0; v.spin = 0;
+  const vc = victimObj(); vc.hopTo = null; vc.thankT = vc.thankT || 0; vc.bye = true;
+  G.dive = newTip(G.winner.x, GROUND, PI/2); G.dive.id = 'dive';
+  G.diveNext = 1.6;
+  worldText(v.x, GROUND - 3, '啊～～', '#e9ecff', 20);
+  screenText('大地裂开了！', '#ffc94a', 22);
+  sfx.via('strike', () => sfx.boom(0.4));
+}
+function updateDescend(dt){
+  G.dt2 += dt; const t = G.dt2, c = G.crack;
+  // halves slide apart, slowly then faster
+  const prev = c.shift; c.shift = Math.pow(Math.max(0, t - 0.3), 1.7)*1.5;   // opens slowly, then speeds up
+  const d = c.shift - prev;
+  for (const o of G.objs){ if (o.villain) continue; o.x += (o.x < c.x ? -1 : 1)*d; }
+  if (Math.random() < dt*30) G.parts.push({ x:c.x + rnd(-0.3, 0.3)*(1 + c.shift), y:GROUND + rnd(0, 0.5), vx:rnd(-1, 1), vy:rnd(1, 4), life:1, max:1, c:'#3a3326', sz:rnd(2, 4), g:12, rock:true });
+  // the villain tumbles into the crack
+  const v = villain(); if (t > 0.5){ v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; } v.x += (c.x - v.x)*Math.min(1, dt*3);
+  // the lightning keeps drilling down through the gap
+  if (t >= G.diveNext && G.dive.y < GROUND + 13){
+    G.diveNext += 0.11;
+    const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
+    grow(m, rnd(1.2, 1.6), 0.1);
+    G.pulse = 0.8;
+  }
+  if (t > 3.9) nextLayer();
+}
+function nextLayer(){
+  const tip = G.dive, dy = tip.y, ox = tip.x;
+  cam.y -= dy;                                       // rebase so the dive tip becomes the top of the new layer
+  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, parts:G.parts };
+  const trail = G.segs.filter(s => s.id === 'dive').map(s => { s.p = s.p.map((v, i) => i % 2 ? v - dy : v); s.deadAt = G.t; return s; });
+  newGame(G.lv, 'play');
+  Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo });
+  G.lstat = { perfect:keep.perfect, good:keep.good, off:keep.off, wrong:keep.wrong };
+  applyLayer(keep.layer, ox);
+  G.segs = trail; G.selected = true;
+  G.tips = [newTip(ox, 0, PI/2)]; pickMain();
+  buildSong(); startSong();
+  const bpm = layerBpm(G.layer);
+  $('tgName').textContent = `第 ${G.layer + 1} 层 · ${bpm} 拍/分 · ${G.cast.villainName}欺负${G.cast.victimName}`;
+  $('progMax').textContent = String(G.rr.length); setTxt('prog', '1');
+  screenText(`第 ${G.layer + 1} 层！速度 ${bpm}`, '#ffc94a', 24);
+}
 function lightningLost(){
   if (G.lost) return; G.lost = true;
   openPause('闪电断了', '闪电一条都不剩了，这一局没法继续。', false);
@@ -649,9 +722,17 @@ function startLanding(){
   for (const t of G.tips) t.fresh = false;
   sfx.startSlow();
   screenText('要落地啦！', '#bfe6ff', 22);
-  const m = G.main, vx = tgtX();
-  const nx = m.x + clamp(vx - m.x, -3, 3);
-  growTo(m, nx, GROUND, 2.2);
+  let m = G.main, vx = tgtX();
+  const strays = smallTips();
+  if (G.endless && strays.length >= 3){
+    m = strays.reduce((a, b) => Math.abs(b.x - vx) > Math.abs(a.x - vx) ? b : a);
+    G.main = m; G.mainSet = new Set(m.lineage);
+    growTo(m, m.x + Math.sign(m.x - vx || 1)*1.5, GROUND, 2.2);
+    screenText('小叉太多，电被抢走了！', '#ff4d5e', 22);
+  } else {
+    const nx = m.x + clamp(vx - m.x, -3, 3);
+    growTo(m, nx, GROUND, 2.2);
+  }
   for (const t of smallTips()) grow(t, 1.2, 2.2);
   setHint('');
 }
@@ -683,7 +764,8 @@ function startFinale(tip){
   for (let i = 1; i < G.rb.length; i++) G.rbCum.push(G.rbCum[i - 1] + Math.hypot(G.rb[i].x - G.rb[i - 1].x, G.rb[i].y - G.rb[i - 1].y));
   sfx.stopBeds(0.12);
   const total = G.resps.length;
-  const acc = clamp((G.perfect*2 + G.good + (G.off || 0)*0.5)/(2*total) - G.wrong*0.05, 0, 1);
+  const ls = G.lstat || { perfect:0, good:0, off:0, wrong:0 };
+  const acc = clamp(((G.perfect - ls.perfect)*2 + (G.good - ls.good) + ((G.off || 0) - ls.off)*0.5)/(2*total) - (G.wrong - ls.wrong)*0.05, 0, 1);
   const power = left === 0 ? 25 : left === 1 ? 18 : left === 2 ? 12 : left === 3 ? 7 : 3;
   const mult = outcome === 'hit' ? 1 : outcome === 'ground' ? 0.45 : 0.3;
   const score = Math.round((70*acc + 30*power/25)*mult);
@@ -718,7 +800,7 @@ function strike(){
   }
 }
 function showResult(){
-  const r = G.result, o = G.outcome, v = G.L.villainName;
+  const r = G.result, o = G.outcome, v = villainName();
   const grade = o !== 'hit' ? '劈歪了' : (r.power >= 25 && r.acc >= 0.8) ? '天罚' : r.power >= 12 ? '粗雷' : '细雷';
   const lines = {
     hit: grade === '天罚' ? `${v}被劈成了爆炸头，${victimName()}感动得一直鞠躬！` : grade === '粗雷' ? `劈中了，${victimName()}得救了！漏了几下，雷没那么粗` : `${victimName()}得救了！小叉剩太多，${v}只是麻了一下`,
@@ -738,6 +820,22 @@ function showResult(){
     `<dt>雷有多粗<small>还剩 ${r.left} 条小叉没点掉</small></dt><dd>${r.power} / 25</dd>` +
     `<dt>劈到了谁</dt><dd>${resultName}</dd>`;
   $('rNext').textContent = G.lv === LEVELS.length - 1 ? '从头再来' : '下一关';
+  if (G.endless){
+    const layers = G.layer + (o === 'hit' ? 1 : 0), prev = best[G.lv] || 0;
+    $('rGrade').textContent = `劈穿 ${layers} 层`; $('rGrade').className = 'grade' + (layers ? '' : ' miss');
+    $('rLine').textContent = (o === 'hit' ? '' : `第 ${G.layer + 1} 层劈歪了，${villainName()}跑了。`) + (layers > prev ? '新纪录！' : `最高纪录 ${prev} 层`);
+    $('rScore').textContent = layers;
+    $('rScore').parentElement.lastChild.textContent = ' 层';
+    const st = layers >= 10 ? 3 : layers >= 5 ? 2 : layers >= 2 ? 1 : 0;
+    $('rStars').innerHTML = [0,1,2].map(i => `<span class="${i < st ? 'on' : ''}">★</span>`).join('');
+    $('rRows').innerHTML = `<dt>最快速度</dt><dd>${layerBpm(G.layer)} 拍/分</dd>` +
+      `<dt>跟得准不准<small>真准 ${G.perfect} · 还行 ${G.good} · 没踩拍 ${G.off || 0} · 点到大球 ${G.wrong}</small></dt><dd></dd>` +
+      `<dt>最多连对</dt><dd>${G.maxCombo} 下</dd>`;
+    if (layers > prev){ best[G.lv] = layers; try { localStorage.setItem('tdlp-rhythm-best8', JSON.stringify(best)); } catch(e){} }
+    $('result').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
+    return;
+  }
+  $('rScore').parentElement.lastChild.textContent = ' / 100';
   if (!best[G.lv] || r.score > best[G.lv]){ best[G.lv] = r.score; try { localStorage.setItem('tdlp-rhythm-best8', JSON.stringify(best)); } catch(e){} }
   $('result').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
 }
@@ -756,8 +854,8 @@ function setHint(t){ if (t !== hintText){ hintText = t; $('hint').textContent = 
 function buildMenu(){
   let html = '', grp = '';
   LEVELS.forEach((L, i) => {
-    if (L.group !== grp){ grp = L.group; html += `<div class="grp">${{ '同一音节':'同一音节 · 每轮一样长', '变奏':'变奏 · 每轮长短不一', '混合':'混合 · 两种都有' }[grp]}</div>`; }
-    const b = best[i]; const sub = L.sub + (b != null ? ` · 最高 ${b} 分` : '');
+    if (L.group !== grp){ grp = L.group; html += `<div class="grp">${{ '同一音节':'同一音节 · 每轮一样长', '变奏':'变奏 · 每轮长短不一', '混合':'混合 · 两种都有', '无限':'无限 · 一直往下劈' }[grp]}</div>`; }
+    const b = best[i]; const sub = L.sub + (b != null ? ` · 最高 ${b} ${L.endless ? '层' : '分'}` : '');
     html += `<button data-i="${i}" class="${b != null ? 'best' : ''}">${L.name} · ${L.title}<span>${sub}</span></button>`;
   });
   $('levels').innerHTML = html;
@@ -768,7 +866,7 @@ function startLevel(i){
   newGame(i, 'select');
   $('menu').hidden = true; $('result').hidden = true;
   $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false; $('pauseBtn').hidden = false; $('pause').hidden = true;
-  $('lvName').textContent = G.L.name + ' · ' + G.L.title; $('tgName').textContent = '节奏：' + G.L.sub; $('progMax').textContent = String(G.L.rounds.length);
+  $('lvName').textContent = G.L.name + ' · ' + G.L.title; $('tgName').textContent = G.endless ? `第 1 层 · ${layerBpm(0)} 拍/分 · ${G.cast.villainName}欺负${G.cast.victimName}` : '节奏：' + G.L.sub; $('progMax').textContent = String(rounds().length);
   $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下小坏蛋');
   const go = () => { if (SET.skip){ G.selected = true; begin(); G.zt = 0.45; } };
   if (G.L.notice){ $('noticeText').textContent = G.L.notice; $('noticeTitle').textContent = G.L.name + ' · ' + G.L.title; $('notice').hidden = false; G.afterNotice = go; }
@@ -785,7 +883,7 @@ function begin(){
   sfx.init(); sfx.loadSamples(); G.selected = true;
   $('go').hidden = true; $('bottom').classList.remove('mid');
   G.phase = 'zoomin'; G.zt = 0;
-  G.tips = [newTip(0, 0, PI/2)]; pickMain();
+  G.tips = [newTip(G.ox || 0, 0, PI/2)]; pickMain();
   buildSong();
   setHint('');
 }
@@ -895,11 +993,17 @@ function tipPos(t){
 
 /* ---------------- update ---------------- */
 function camTarget(){
+  if (G.phase === 'descend'){
+    const t = G.dt2;
+    if (t < 1.6) return { x:G.crack.x, y:GROUND - 0.5, s:Math.max(S.full, S.levels[0]*0.45), sp:3 };
+    const [x, y] = tipPos(G.dive), s = S.levels[0];
+    return { x, y:y + 0.1*H/s, s, sp:5 };
+  }
   if ((G.phase === 'finale' || G.phase === 'result') && G.rb){
     const ft = G.ft;
     if (ft < FIN.pause) return { x:cam.x, y:cam.y, s:cam.s };
     if (ft < FIN.climbEnd){ const p = boltPointAt(climbFrac()), s = S.levels[0]*1.1; return { x:p.x, y:p.y - 0.08*H/s, s, sp:14 }; }
-    if (ft < FIN.impact) return { x:0, y:GROUND/2 + 2, s:S.full, sp:7 };
+    if (ft < FIN.impact) return { x:((G.ox || 0) + tgtX())/2, y:GROUND/2 + 2, s:S.full, sp:7 };
     if (G.outcome === 'hit'){
       // frame both the smoking villain and the thankful animal
       const v = villain(), vc = victimObj(), dx = Math.abs(v.x - vc.x) + 4.2;
@@ -980,13 +1084,15 @@ function update(dt){
     }
   }
   if (G.phase === 'land'){ G.lt += dt; if (G.lt >= 2.35) startFinale(G.main); }
+  if (G.phase === 'descend') updateDescend(dt);
   if (G.phase === 'finale' || G.phase === 'result'){
     G.ft += dt;
     if (!G.cracked && G.ft >= FIN.pause){ G.cracked = true; sfx.crack(); G.shake = RM ? 0 : 0.15; G.flash = 0.25; }
     if (!G.topFlash && G.ft >= FIN.climbEnd){ G.topFlash = true; G.flash = 0.5; }
     if (!G.struck && G.ft >= FIN.impact){ G.struck = true; strike(); }
     if (!G.boomed && G.ft >= FIN.impact + 0.55){ G.boomed = true; sfx.boom(G.power/25); }
-    if (!G.shown && G.ft >= FIN.result){ G.shown = true; G.phase = 'result'; showResult(); }
+    if (G.endless && G.outcome === 'hit' && G.ft >= FIN.impact + 1.7){ startDescent(); }
+    else if (!G.shown && G.ft >= FIN.result){ G.shown = true; G.phase = 'result'; showResult(); }
   }
   const ct = camTarget(), sp = ct.sp || (G.phase === 'zoomin' ? 3.2 : 5), k = 1 - Math.exp(-dt*sp);
   cam.x += (ct.x - cam.x)*k; cam.y += (ct.y - cam.y)*k;
@@ -1126,6 +1232,7 @@ function drawImpact(){
 }
 function circle(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, 2*PI); ctx.fill(); }
 function drawCloud(){
+  if (G.layer > 0) return;   // deeper layers: no sky, just the dark below
   const [, cy0] = w2s(0, -1.6);
   if (cy0 > 0){ ctx.fillStyle = '#191c3a'; ctx.fillRect(0, 0, W, cy0); }
   const charge = G.phase === 'select' || G.phase === 'zoomin' ? 0.5 + 0.5*Math.sin(G.t*6) : G.pulse;
@@ -1145,6 +1252,22 @@ function drawCloud(){
 function drawGround(){
   const [, gy] = w2s(0, GROUND);
   if (gy > H + 10) return;
+  if (G.crack && G.phase === 'descend'){
+    const c = G.crack, [lx] = w2s(c.x - c.shift - 0.15, GROUND), [rx] = w2s(c.x + c.shift + 0.15, GROUND), depth = H - gy + 40;
+    const gg = ctx.createLinearGradient(0, gy, 0, gy + Math.max(80, cam.s*4)); gg.addColorStop(0, '#1d2318'); gg.addColorStop(1, '#0c0e0a');
+    ctx.fillStyle = gg;
+    // left half with a jagged inner edge
+    ctx.beginPath(); ctx.moveTo(-40, gy); ctx.lineTo(lx, gy);
+    for (let i = 1; i <= 8; i++) ctx.lineTo(lx + Math.sin(i*2.7)*cam.s*0.25, gy + depth*i/8);
+    ctx.lineTo(-40, gy + depth); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(W + 40, gy); ctx.lineTo(rx, gy);
+    for (let i = 1; i <= 8; i++) ctx.lineTo(rx + Math.sin(i*2.7 + 1)*cam.s*0.25, gy + depth*i/8);
+    ctx.lineTo(W + 40, gy + depth); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#33412c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-40, gy); ctx.lineTo(lx, gy); ctx.moveTo(rx, gy); ctx.lineTo(W + 40, gy); ctx.stroke();
+    // glowing crack edges
+    ctx.strokeStyle = 'rgba(255,170,80,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lx, gy); ctx.lineTo(lx + Math.sin(2.7)*cam.s*0.25, gy + depth/8); ctx.moveTo(rx, gy); ctx.lineTo(rx + Math.sin(3.7)*cam.s*0.25, gy + depth/8); ctx.stroke();
+    return;
+  }
   const gg = ctx.createLinearGradient(0, gy, 0, gy + Math.max(80, cam.s*4));
   gg.addColorStop(0, '#1d2318'); gg.addColorStop(1, '#0c0e0a');
   ctx.fillStyle = gg; ctx.fillRect(-40, gy, W + 80, H - gy + 40);
@@ -1154,7 +1277,7 @@ function drawGround(){
   ctx.stroke();
 }
 function drawGuide(){
-  const [ax, ay] = w2s(0, 0), [bx, by] = w2s(tgtX(), GROUND - 0.6);
+  const [ax, ay] = w2s(G.ox || 0, 0), [bx, by] = w2s(tgtX(), GROUND - 0.6);
   ctx.save(); ctx.setLineDash([7, 9]); ctx.lineDashOffset = -G.t*30;
   ctx.strokeStyle = 'rgba(255,201,74,0.45)'; ctx.lineWidth = 1.6;
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore();
@@ -1184,10 +1307,10 @@ function drawSegs(){
   for (const pass of [0, 1]){
     for (const s of G.segs){
       let a = segAlpha(s); if (a <= 0.01) continue;
-      const main = G.mainSet.has(s.id);
+      const main = G.mainSet.has(s.id) || s.id === 'dive';
       let w = (main ? 3 : 1.4)*zf;
       const inWin = G.winner && G.winner.lineage.includes(s.id);
-      if (G.struck) a *= 0.25 + strikeA;
+      if (G.struck && s.id !== 'dive') a *= 0.25 + strikeA;
       if (G.phase === 'play' || G.phase === 'zoomin') a *= 0.72;   // the lead lightning is a little dimmer too
       if (G.cracked && !G.struck && !inWin) a *= 0.45;
       const frac = clamp((G.t - s.born)/(s.gd || 0.12), 0, 1);
@@ -1324,18 +1447,18 @@ function drawTexts(world){
 /* ---------------- characters ---------------- */
 function ell(x, y, rx, ry, rot){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, 2*PI); ctx.fill(); }
 function drawObj(o){
-  const [sx, gy] = w2s(o.x, GROUND);
+  const [sx, gy] = w2s(o.x, GROUND + (o.fy || 0));
   // villain: drawn ~1.7x bigger (never tiny on the overview), with a red glow, a ground halo and a bouncing tag
   const u = o.villain ? Math.max(cam.s*VSCALE, 34) : o.victim ? Math.max(cam.s*1.3, 24) : cam.s;
   if (o.kind !== 'pole' && (sx < -u*2 || sx > W + u*2)) return;
-  const ch = o.state === 'char';
+  const ch = o.state === 'char' || o.state === 'fall';
   if (o.villain && !ch){
     const pulse = 0.5 + 0.5*Math.sin(G.t*4);
     const rg = ctx.createRadialGradient(sx, gy, 0, sx, gy, u*1.3);
     rg.addColorStop(0, `rgba(255,80,80,${0.35 + 0.2*pulse})`); rg.addColorStop(1, 'rgba(255,80,80,0)');
     ctx.save(); ctx.translate(sx, gy); ctx.scale(1, 0.3); ctx.fillStyle = rg; circle(0, 0, u*1.3); ctx.restore();
   }
-  ctx.save(); ctx.translate(sx, gy); ctx.scale(u, u); ctx.lineWidth = 1.5/u;
+  ctx.save(); ctx.translate(sx, gy); if (o.spin){ ctx.translate(0, -u*0.4); ctx.rotate(o.spin); ctx.translate(0, u*0.4); ctx.scale(Math.max(0.3, 1 - (o.fy || 0)*0.05), Math.max(0.3, 1 - (o.fy || 0)*0.05)); } ctx.scale(u, u); ctx.lineWidth = 1.5/u;
   if (o.villain && !ch){ ctx.shadowColor = 'rgba(255,70,70,0.95)'; ctx.shadowBlur = 14; }
   const bob = o.state === 'idle' && o.villain ? Math.abs(Math.sin(G.t*(o.amp ? 9 : 3)))*0.06 : o.state === 'flee' ? Math.abs(Math.sin(G.t*18))*0.12 : 0;
   ctx.translate(0, -bob);
@@ -1380,8 +1503,8 @@ function drawObj(o){
     }
   } else { ctx.fillStyle = '#0d0d10'; for (let i = 0; i < 6; i++) circle(hx - 0.25 + i*0.1, hy - 0.3 - Math.sin(i*1.3)*0.08, 0.14); }
   ctx.restore();
-  if (o.villain && o.state !== 'char' && G.phase !== 'result') drawVillainTag(sx, gy - u*1.15);
-  if (o.villain && o.state === 'char'){
+  if (o.villain && !ch && G.phase !== 'result') drawVillainTag(sx, gy - u*1.15);
+  if (o.villain && o.state === 'char' && !o.fy){
     ctx.save(); ctx.font = `bold ${Math.round(u*0.32)}px ${FONT_B}`; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe14a';
     for (let i = 0; i < 3; i++){ const a = G.t*4 + i*2*PI/3; ctx.fillText('★', sx + (o.dir || 1)*u*0.55 + Math.cos(a)*u*0.45, gy - u*1.15 + Math.sin(a)*u*0.12); }
     ctx.restore();
@@ -1465,7 +1588,7 @@ function drawVictim(o){
   }
 }
 function drawThanksBubble(x, y, o){
-  const lines = THANKS[o.kind] || THANKS.chick, i = Math.floor((o.thankT || 0)/1.3) % lines.length, txt = lines[i];
+  const lines = THANKS[o.kind] || THANKS.chick, i = Math.floor((o.thankT || 0)/1.3) % lines.length, txt = o.bye ? '拜拜～雷公加油！' : lines[i];
   const pop = Math.min(1, ((o.thankT || 0) % 1.3)/0.12), b = Math.abs(Math.sin(G.t*6))*3;
   ctx.save(); ctx.translate(x, y - b); ctx.scale(0.6 + 0.4*pop, 0.6 + 0.4*pop);
   ctx.font = `800 15px ${FONT_D}`; ctx.textAlign = 'center';
