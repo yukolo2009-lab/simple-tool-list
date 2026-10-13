@@ -94,12 +94,12 @@ canvas{position:fixed;inset:0;display:block}
   <p class="sub">闪电先敲鼓，你再跟着敲。<br>敲对了，就能劈中小坏蛋！</p>
   <ol class="how">
     <li>点一下<b>小坏蛋</b>，再按<b>开劈</b></li>
-    <li>闪电敲“咚咚锵”时，<b>先听，别点</b></li>
-    <li>轮到你了，跟着<b>一样的节奏</b>点亮亮的<b>小球</b></li>
+    <li>听到闪电“哆、哆”时，<b>先听，别点</b></li>
+    <li>听到“啦、啦”就轮到你，跟着节奏点亮亮的<b>小球</b></li>
     <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
-  <p class="ver">版本 10月13日 20:20 · 闪电走听「咚」，你按听「啪」</p>
+  <p class="ver">版本 10月13日 20:30 · 闪电走是「哆」，你按是「啦」</p>
 </section>
 
 <section class="panel" id="result" hidden>
@@ -203,6 +203,19 @@ const sfx = {
   hat(t, v){ if (!this.ok()) return; this.env(this.noiseSrc(t, 0.05, 'highpass', 8000), t, 0.001, 0.035, v || 0.08); },
   stick(t, hi){ if (!this.ok()) return; this.osc(t, 'square', hi ? 1700 : 1250, hi ? 1700 : 1250, 0.03, 0.001, 0.04, 0.12); },
   bass(t, f){ if (!this.ok()) return; this.osc(t, 'triangle', f, f, 0.3, 0.005, 0.28, 0.42); },
+  // lightning's turn: always 哆 (C5), plucky lead + a little electric fizz
+  doNote(t){
+    if (!this.ok()) return;
+    this.osc(t, 'triangle', 523.25, 523.25, 0.4, 0.003, 0.38, 0.38);
+    this.osc(t, 'square', 1046.5, 1046.5, 0.1, 0.002, 0.1, 0.05);
+    this.env(this.noiseSrc(t, 0.06, 'bandpass', 3000, 1.5), t, 0.001, 0.05, 0.12);
+  },
+  // your turn: always 啦 (A5), bell-like
+  laNote(t){
+    if (!this.ok()) return;
+    this.osc(t, 'sine', 880, 880, 0.5, 0.002, 0.45, 0.3);
+    this.osc(t, 'sine', 2640, 2640, 0.2, 0.001, 0.15, 0.06);
+  },
   guide(t){ if (!this.ok()) return; this.osc(t, 'sine', 1320, 1320, 0.05, 0.002, 0.06, 0.06); },
   pad(t, fs, dur){
     if (!this.ok()) return;
@@ -330,7 +343,7 @@ function buildSong(){
     P.hits.forEach(([h, type], i) => {
       G.calls.push({ t:(cs + h)*bt, type, r, i });
       G.resps.push({ t:(rs + h)*bt, type, r, i, done:false, res:null });
-      G.aev.push({ t:(cs + h)*bt, f:type === 'd' ? 'dong' : 'qiang' });
+      G.aev.push({ t:(cs + h)*bt, f:'do' });
     });
     cur = rs + P.span;
   });
@@ -346,7 +359,7 @@ function buildSong(){
   }
   // lead-and-follow drums: lightning's turn = all 咚 (kick), your turn = all 啪 (clap)
   for (const c of G.calls){ G.aev.push({ t:c.t, f:'kick', a:1 }); drumT.push(c.t); }
-  for (const q of G.resps){ G.aev.push({ t:q.t, f:'clap' }); drumT.push(q.t); }
+  for (const q of G.resps){ G.aev.push({ t:q.t, f:'clap' }); G.aev.push({ t:q.t, f:'la' }); drumT.push(q.t); }
   // the lightning moves on every drum hit: big step + branch on its own 咚/锵, small step on the other drum hits
   const stepAt = new Map();
   for (const t of drumT) stepAt.set(Math.round(t*1000), { t, call:null });
@@ -369,6 +382,7 @@ function scheduleAudio(now){
     else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
     else if (e.f === 'bass') sfx.bass(at, e.a); else if (e.f === 'smallGong') sfx.smallGong(at);
+    else if (e.f === 'do') sfx.doNote(at); else if (e.f === 'la') sfx.laNote(at);
     else if (e.f === 'guide') sfx.guide(at); else if (e.f === 'pad') sfx.pad(at, e.a, e.d);
   }
 }
@@ -749,7 +763,7 @@ function update(dt){
         const st = G.steps[G.si];
         if (st.call){
           G.ci++;
-          if (!G.useAC){ if (st.call.type === 'd') sfx.dong(sfx.now()); else sfx.qiang(sfx.now()); }
+          if (!G.useAC) sfx.doNote(sfx.now());
           doCall(st.call, st);
         } else doBeatStep(st);
         G.si++;
