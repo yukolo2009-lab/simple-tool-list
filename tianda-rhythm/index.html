@@ -200,6 +200,18 @@ const sfx = {
   hat(t, v){ if (!this.ok()) return; this.env(this.noiseSrc(t, 0.05, 'highpass', 8000), t, 0.001, 0.035, v || 0.08); },
   stick(t, hi){ if (!this.ok()) return; this.osc(t, 'square', hi ? 1700 : 1250, hi ? 1700 : 1250, 0.03, 0.001, 0.04, 0.12); },
   bass(t, f){ if (!this.ok()) return; this.osc(t, 'triangle', f, f, 0.3, 0.005, 0.28, 0.42); },
+  guide(t){ if (!this.ok()) return; this.osc(t, 'sine', 1320, 1320, 0.05, 0.002, 0.06, 0.06); },
+  pad(t, fs, dur){
+    if (!this.ok()) return;
+    for (const f of fs) for (const det of [0.997, 1.003]){
+      const o = this.ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f*det;
+      const lp = this.ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      const g = this.ac.createGain(); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.05, t + Math.min(0.4, dur*0.3));
+      g.gain.setValueAtTime(0.05, t + dur*0.8); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.2);
+      o.connect(lp); lp.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.3);
+    }
+  },
   smallGong(t){ if (!this.ok()) return; for (const [f, v] of [[820, 0.05], [1240, 0.035], [1630, 0.025]]) this.osc(t, 'triangle', f, f*0.985, 0.4, 0.002, 0.35, v); },
   // call voices (闪电领唱)
   dong(t){ if (!this.ok()) return; this.osc(t, 'sine', 95, 52, 0.4, 0.004, 0.5, 1.0); this.osc(t, 'sine', 170, 120, 0.12, 0.002, 0.14, 0.35); this.env(this.noiseSrc(t, 0.08, 'lowpass', 500), t, 0.001, 0.06, 0.4); },
@@ -319,16 +331,29 @@ function buildSong(){
     });
     cur = rs + P.span;
   });
-  const walk = [55, 65.4, 73.4, 82.4, 73.4, 65.4];   // A C D E pentatonic walk, one note per 2 beats
+  // backing groove (unchanged): kick on even beats, clap on odd beats, hats from section 2, bass, extra half-beat kick in section 3
+  const walk = [55, 65.4, 73.4, 82.4, 73.4, 65.4];
+  const drumT = [];
   for (let k = 0; k < cur; k++){
     const t = k*bt;
     if (k < 4){ G.aev.push({ t, f:'stick', a:k === 0 }); continue; }
     const seg = G.segs2.find(sg => k >= sg.a && k < sg.b), sec = seg ? secOf(seg.r) : 0;
     if (k % 2 === 0) G.aev.push({ t, f:'kick', a:1 }); else G.aev.push({ t, f:'clap' });
+    drumT.push(t);
     if (sec >= 1){ G.aev.push({ t, f:'hat', a:0.09 }); G.aev.push({ t:t + bt/2, f:'hat', a:0.05 }); }
     if (sec >= 1 && k % 2 === 0) G.aev.push({ t, f:'bass', a:walk[(k/2) % walk.length]*2 });
-    if (sec >= 2 && k % 2 === 1) G.aev.push({ t:t + bt/2, f:'kick', a:0.55 });
+    if (sec >= 2 && k % 2 === 1){ G.aev.push({ t:t + bt/2, f:'kick', a:0.55 }); drumT.push(t + bt/2); }
   }
+  // the lightning moves on every drum hit: big step + branch on its own 咚/锵, small step on the other drum hits
+  const stepAt = new Map();
+  for (const t of drumT) stepAt.set(Math.round(t*1000), { t, call:null });
+  for (const c of G.calls){ const k = Math.round(c.t*1000); stepAt.set(k, { t:c.t, call:c }); }
+  G.steps = [...stepAt.values()].sort((a, b) => a.t - b.t).map(st => {
+    const k = st.t/bt, seg = G.segs2.find(sg => k >= sg.a - 1e-6 && k < sg.b - 1e-6);
+    const w = st.call ? 1 : (seg && seg.kind === 'resp') ? 0.3 : 0.6;
+    return Object.assign(st, { w });
+  });
+  G.si = 0;
   G.aev.sort((a, b2) => a.t - b2.t);
   G.landT = cur*bt;
 }
@@ -341,6 +366,7 @@ function scheduleAudio(now){
     else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
     else if (e.f === 'bass') sfx.bass(at, e.a); else if (e.f === 'smallGong') sfx.smallGong(at);
+    else if (e.f === 'guide') sfx.guide(at); else if (e.f === 'pad') sfx.pad(at, e.a, e.d);
   }
 }
 function barInfo(now){
@@ -418,19 +444,31 @@ function updateLevel(){
 }
 
 /* ---- call: lightning sings one hit ---- */
-function doCall(c){
+// remaining distance shared out over the remaining drum steps by weight
+function stepLen(w){
+  const m = G.main; let rest = 0;
+  for (let i = G.si; i < G.steps.length; i++) rest += G.steps[i].w;
+  const dy = (GROUND - 3.5 - m.y)*w/Math.max(0.3, rest);
+  return clamp(dy/Math.max(0.5, Math.sin(m.a)), 0.15, 5);
+}
+function steer(m){
+  const ta = Math.atan2(GROUND - m.y, tgtX() - m.x);
+  m.a += angDiff(ta, m.a)*0.3 + (Math.random() - 0.5)*0.35;
+  m.a = clamp(m.a, 0.45, PI - 0.45);
+}
+function doBeatStep(st){
+  const m = G.main; if (!m) return;
+  G.pulse = Math.max(G.pulse, 0.6);
+  steer(m); grow(m, stepLen(st.w), 0.1);
+}
+function doCall(c, st){
   G.pulse = 1; G.cueFlash = 1;
   const m = G.main, vx = tgtX();
   // leftovers (small tips from earlier rounds) creep outward
   for (const t of smallTips()){ if (!t.fresh){ t.a += (t.x > lineX(t.y) ? -1 : 1)*0.12; t.a = clamp(t.a, 0.2, PI - 0.2); grow(t, 1.6, 0.15); } }
   // main steps toward the target
-  const ta = Math.atan2(GROUND - m.y, vx - m.x);
-  m.a += angDiff(ta, m.a)*0.3 + (Math.random() - 0.5)*0.45;
-  m.a = clamp(m.a, 0.45, PI - 0.45);
-  const steps = G.calls.length - G.ci + 1;
-  const dyNeed = (GROUND - 3.5 - m.y - (rounds().length - c.r)*CRAWL)/Math.max(1, steps);
-  const len = clamp(dyNeed/Math.max(0.5, Math.sin(m.a)), 0.5, 5);
-  grow(m, len, 0.15);
+  steer(m);
+  grow(m, stepLen(st.w), 0.12);
   const nb = spawnBranch(m); nb.fresh = true;
   // cap: too many leftovers → oldest silently dies out
   const small = smallTips();
@@ -446,7 +484,7 @@ function startResp(r){
   const b = bbox(G.tips.length ? G.tips : [{ x:0, y:0 }]);
   const s = fitScale();
   G.respCam = { x:(b.x0 + b.x1)/2, y:(b.y0 + b.y1)/2 + 0.1*H/s + CRAWL*0.5, s };
-  { const sg = G.segs2.find(q => q.r === r && q.kind === 'resp'); for (const t of G.tips) grow(t, CRAWL, (sg.b - sg.a)*G.beat*0.95); }   // super-slow crawl, never fully stops
+  { const sg = G.segs2.find(q => q.r === r && q.kind === 'resp'); for (const t of G.tips) if (t !== G.main) grow(t, CRAWL*0.6, (sg.b - sg.a)*G.beat*0.95); }   // super-slow crawl, never fully stops
 }
 function endResp(){ G.inResp = false; updateLevel(); }
 function judgeMiss(rp){
@@ -547,7 +585,7 @@ function showResult(){
 
 /* ---------------- effects ---------------- */
 function worldText(x, y, txt, c, sz){ G.texts.push({ x, y, txt, c, sz:sz || 18, life:1.6, max:1.6, world:true }); }
-function screenText(txt, c, sz){ G.texts.push({ sx:W/2, sy:H*0.36, txt, c, sz:sz || 20, life:1.4, max:1.4, world:false }); }
+function screenText(txt, c, sz){ G.texts = G.texts.filter(t => t.world || t.sy !== H*0.44); G.texts.push({ sx:W/2, sy:H*0.44, txt, c, sz:sz || 20, life:1.4, max:1.4, world:false }); }
 function tapText(sx, sy, txt, c){ G.texts.push({ sx, sy, txt, c, sz:17, life:0.7, max:0.7, world:false }); }
 function bigText(txt, c, life){ G.big = { txt, c, life:life || 0.8, max:life || 0.8 }; }
 const rain = [];
@@ -704,10 +742,14 @@ function update(dt){
       else if (bi.kind === 'land'){ startLanding(); }
     }
     if (G.phase === 'play'){
-      while (G.ci < G.calls.length && now >= G.calls[G.ci].t){
-        const c = G.calls[G.ci++];
-        if (!G.useAC){ if (c.type === 'd') sfx.dong(sfx.now()); else sfx.qiang(sfx.now()); }
-        doCall(c);
+      while (G.si < G.steps.length && now >= G.steps[G.si].t){
+        const st = G.steps[G.si];
+        if (st.call){
+          G.ci++;
+          if (!G.useAC){ if (st.call.type === 'd') sfx.dong(sfx.now()); else sfx.qiang(sfx.now()); }
+          doCall(st.call, st);
+        } else doBeatStep(st);
+        G.si++;
       }
       { const tn = tapClock(); for (const q of G.resps) if (!q.done && tn > q.t + WIN_G) judgeMiss(q); }
       if (bi.kind === 'count'){ const n = 4 - Math.floor(now/G.beat); if (n >= 1 && n <= 4 && G.lastCount !== n){ G.lastCount = n; bigText(String(n), '#e9ecff', 0.55); } }
