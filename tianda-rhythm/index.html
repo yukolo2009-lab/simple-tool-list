@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 22:45 · 新增第八关：无限深渊</p>
+  <p class="ver">版本 10月13日 23:00 · 无限深渊：裂地下钻跟着节拍，不再读秒</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -482,7 +482,7 @@ function tapClock(){
 function buildSong(){
   const bt = G.beat;
   G.calls = []; G.resps = []; G.aev = []; G.segs2 = [];
-  let cur = 4;                                     // beats; 0..3 = count-in
+  let cur = G.noCount ? 0 : 4;                     // beats; 0..3 = count-in (skipped between endless layers)
   rounds().forEach((pk, r) => {
     const P = PATTERNS[pk], cs = cur, rs = cur + P.span;
     G.segs2.push({ r, kind:'call', a:cs, b:rs }, { r, kind:'resp', a:rs, b:rs + P.span });
@@ -496,7 +496,7 @@ function buildSong(){
   });
   // backing, built segment by segment so the fine pulse always divides the current 音节 evenly
   const drumT = [];
-  for (let k = 0; k < 4; k++) G.aev.push({ t:k*bt, f:'stick', a:k === 0 });
+  if (!G.noCount) for (let k = 0; k < 4; k++) G.aev.push({ t:k*bt, f:'stick', a:k === 0 });
   const roots = [110, 130.8, 146.8, 164.8];
   for (const sg of G.segs2){
     const P = PATTERNS[rounds()[sg.r]], n = P.hits.length, span = sg.b - sg.a, t0 = sg.a*bt;
@@ -666,39 +666,50 @@ function judgeMiss(rp){
 }
 
 /* ---------------- ending ---------------- */
+const DESCENT_BEATS = 8;
+const nowClock = () => (sfx.ac && sfx.ac.state === 'running') ? sfx.now() : performance.now()/1000;
 function startDescent(){
   G.phase = 'descend'; G.dt2 = 0;
   G.crack = { x:G.winner.x, shift:0 };
   const v = villain(); v.state = 'fall'; v.fy = 0; v.fv = 0; v.spin = 0;
   const vc = victimObj(); vc.hopTo = null; vc.thankT = vc.thankT || 0; vc.bye = true;
   G.dive = newTip(G.winner.x, GROUND, PI/2); G.dive.id = 'dive';
-  G.diveNext = 1.6;
+  // beat clock for the descent: start on the next whole beat, keep the drums going
+  G.dBeat = G.beat; G.dUseAC = !!(sfx.ac && sfx.ac.state === 'running'); G.dT0 = nowClock() + 0.05; G.dK = -1;
+  if (G.dUseAC) for (let k = 0; k < DESCENT_BEATS; k++){
+    const t = G.dT0 + k*G.dBeat;
+    sfx.via('music', () => { if (k % 2 === 0){ sfx.kick(t, 1); sfx.bass(t, [110, 130.8, 146.8, 164.8][(k/2) % 4]); } else sfx.clap(t); sfx.hat(t, 0.06); sfx.hat(t + G.dBeat/2, 0.04); });
+  }
   worldText(v.x, GROUND - 3, '啊～～', '#e9ecff', 20);
   screenText('大地裂开了！', '#ffc94a', 22);
-  sfx.via('strike', () => sfx.boom(0.4));
 }
 function updateDescend(dt){
   G.dt2 += dt; const t = G.dt2, c = G.crack;
-  // halves slide apart, slowly then faster
-  const prev = c.shift; c.shift = Math.pow(Math.max(0, t - 0.3), 1.7)*1.5;   // opens slowly, then speeds up
+  const b = (nowClock() - G.dT0)/G.dBeat;            // beats since the descent started
+  // halves slide apart: slow at first, faster later, gone by the end
+  const prev = c.shift; c.shift = Math.pow(Math.max(0, b - 0.5)/(DESCENT_BEATS - 0.5), 1.6)*12;
   const d = c.shift - prev;
   for (const o of G.objs){ if (o.villain) continue; o.x += (o.x < c.x ? -1 : 1)*d; }
   if (Math.random() < dt*30) G.parts.push({ x:c.x + rnd(-0.3, 0.3)*(1 + c.shift), y:GROUND + rnd(0, 0.5), vx:rnd(-1, 1), vy:rnd(1, 4), life:1, max:1, c:'#3a3326', sz:rnd(2, 4), g:12, rock:true });
   // the villain tumbles into the crack
-  const v = villain(); if (t > 0.5){ v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; } v.x += (c.x - v.x)*Math.min(1, dt*3);
-  // the lightning keeps drilling down through the gap
-  if (t >= G.diveNext && G.dive.y < GROUND + 13){
-    G.diveNext += 0.11;
-    const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
-    grow(m, rnd(1.2, 1.6), 0.1);
-    G.pulse = 0.8;
+  const v = villain(); if (b > 1){ v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; } v.x += (c.x - v.x)*Math.min(1, dt*3);
+  // the lightning drills down one step per beat, starting on beat 3
+  const k = Math.floor(b);
+  if (k !== G.dK && k >= 0){
+    G.dK = k; G.pulse = 1;
+    if (k >= 3 && k < DESCENT_BEATS){
+      const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
+      grow(m, 2.4, Math.min(0.15, G.dBeat*0.4));
+      sfx.via('fx', () => sfx.leadDrum(sfx.now()));
+    }
   }
-  if (t > 3.9) nextLayer();
+  if (b >= DESCENT_BEATS - 0.02) nextLayer();
 }
 function nextLayer(){
   const tip = G.dive, dy = tip.y, ox = tip.x;
+  const songT0 = G.dT0 + DESCENT_BEATS*G.dBeat, useAC = G.dUseAC;
   cam.y -= dy;                                       // rebase so the dive tip becomes the top of the new layer
-  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, parts:G.parts };
+  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1 };
   const trail = G.segs.filter(s => s.id === 'dive').map(s => { s.p = s.p.map((v, i) => i % 2 ? v - dy : v); s.deadAt = G.t; return s; });
   newGame(G.lv, 'play');
   Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo });
@@ -706,7 +717,9 @@ function nextLayer(){
   applyLayer(keep.layer, ox);
   G.segs = trail; G.selected = true;
   G.tips = [newTip(ox, 0, PI/2)]; pickMain();
-  buildSong(); startSong();
+  G.noCount = true; buildSong();
+  // no count-in: the first lead hit lands exactly one beat-grid step after the descent
+  G.phase = 'play'; G.useAC = useAC; G.t0 = songT0; G.songStarted = true;
   const bpm = layerBpm(G.layer);
   $('tgName').textContent = `第 ${G.layer + 1} 层 · ${bpm} 拍/分 · ${G.cast.villainName}欺负${G.cast.victimName}`;
   $('progMax').textContent = String(G.rr.length); setTxt('prog', '1');
@@ -994,8 +1007,8 @@ function tipPos(t){
 /* ---------------- update ---------------- */
 function camTarget(){
   if (G.phase === 'descend'){
-    const t = G.dt2;
-    if (t < 1.6) return { x:G.crack.x, y:GROUND - 0.5, s:Math.max(S.full, S.levels[0]*0.45), sp:3 };
+    const b = (nowClock() - G.dT0)/G.dBeat;
+    if (b < 3) return { x:G.crack.x, y:GROUND - 0.5, s:Math.max(S.full, S.levels[0]*0.45), sp:3 };
     const [x, y] = tipPos(G.dive), s = S.levels[0];
     return { x, y:y + 0.1*H/s, s, sp:5 };
   }
