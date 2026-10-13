@@ -99,7 +99,7 @@ canvas{position:fixed;inset:0;display:block}
     <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
-  <p class="ver">版本 10月13日 20:15 · 闪电敲完马上轮到你</p>
+  <p class="ver">版本 10月13日 20:20 · 闪电走听「咚」，你按听「啪」</p>
 </section>
 
 <section class="panel" id="result" hidden>
@@ -341,12 +341,12 @@ function buildSong(){
     const t = k*bt;
     if (k < 4){ G.aev.push({ t, f:'stick', a:k === 0 }); continue; }
     const seg = G.segs2.find(sg => k >= sg.a && k < sg.b), sec = seg ? secOf(seg.r) : 0;
-    if (k % 2 === 0) G.aev.push({ t, f:'kick', a:1 }); else G.aev.push({ t, f:'clap' });
-    drumT.push(t);
-    if (sec >= 1){ G.aev.push({ t, f:'hat', a:0.09 }); G.aev.push({ t:t + bt/2, f:'hat', a:0.05 }); }
+    if (sec >= 1){ G.aev.push({ t, f:'hat', a:0.07 }); G.aev.push({ t:t + bt/2, f:'hat', a:0.04 }); }
     if (sec >= 1 && k % 2 === 0) G.aev.push({ t, f:'bass', a:walk[(k/2) % walk.length]*2 });
-    if (sec >= 2 && k % 2 === 1){ G.aev.push({ t:t + bt/2, f:'kick', a:0.55 }); drumT.push(t + bt/2); }
   }
+  // lead-and-follow drums: lightning's turn = all 咚 (kick), your turn = all 啪 (clap)
+  for (const c of G.calls){ G.aev.push({ t:c.t, f:'kick', a:1 }); drumT.push(c.t); }
+  for (const q of G.resps){ G.aev.push({ t:q.t, f:'clap' }); drumT.push(q.t); }
   // the lightning moves on every drum hit: big step + branch on its own 咚/锵, small step on the other drum hits
   const stepAt = new Map();
   for (const t of drumT) stepAt.set(Math.round(t*1000), { t, call:null });
