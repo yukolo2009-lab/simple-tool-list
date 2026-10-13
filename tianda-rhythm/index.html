@@ -108,19 +108,19 @@ canvas{position:fixed;inset:0;display:block}
   <p class="sub">闪电先敲鼓，你再跟着敲。<br>敲对了，就能劈中小坏蛋！</p>
   <ol class="how">
     <li>点一下<b>小坏蛋</b>，再按<b>开劈</b></li>
-    <li>闪电“哆…嗦”时，<b>先听，别点</b>；最后那声高的“嗦”就是交给你的信号</li>
-    <li>画面一暗、“啦”声响起就轮到你，照同样的节奏点亮亮的<b>小球</b></li>
+    <li>闪电敲低沉的“咚”时，<b>先听，别点</b></li>
+    <li>听到上滑的“嗖↗”、画面一暗，就轮到你：照同样的节奏点亮亮的<b>小球</b>，发出清脆的“叮”</li>
     <li><b>最大的球别点</b>，它在给闪电带路</li>
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 21:00 · 同一音节 + 变奏、嗦提示、变暗、速度可调</p>
+  <p class="ver">版本 10月13日 21:20 · 咚/叮分角色、嗖交棒、音节格子</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
   <h2>音量和设置</h2>
-  <label class="vol" for="v_music"><span>背景音乐<small>鼓、沙锤、贝斯</small></span><input type="range" id="v_music" min="0" max="100" step="5"><b id="l_music">80</b></label>
-  <label class="vol" for="v_fx"><span>闪电音效<small>“哆”“啦”和点击声</small></span><input type="range" id="v_fx" min="0" max="100" step="5"><b id="l_fx">80</b></label>
+  <label class="vol" for="v_music"><span>背景音乐<small>音节开头的“嗒”、沙锤、贝斯、拍手</small></span><input type="range" id="v_music" min="0" max="100" step="5"><b id="l_music">80</b></label>
+  <label class="vol" for="v_fx"><span>闪电音效<small>闪电的“咚”、你的“叮”、交棒的“嗖”</small></span><input type="range" id="v_fx" min="0" max="100" step="5"><b id="l_fx">80</b></label>
   <label class="vol" for="v_strike"><span>劈下来的声音<small>慢动作、炸裂、雷声</small></span><input type="range" id="v_strike" min="0" max="100" step="5"><b id="l_strike">80</b></label>
   <label class="vol" for="v_bpm"><span>速度<small>每分钟多少拍，所有关卡统一；下一局开始生效</small></span><input type="range" id="v_bpm" min="60" max="160" step="2"><b id="l_bpm">100</b></label>
   <label class="chk" for="skipIntro"><input type="checkbox" id="skipIntro"><span>跳过开场<small>选完关卡直接开始，不用点坏蛋、按开劈</small></span></label>
@@ -249,6 +249,31 @@ const sfx = {
     this.osc(t, 'square', 1046.5, 1046.5, 0.1, 0.002, 0.1, 0.05);
     this.env(this.noiseSrc(t, 0.06, 'bandpass', 3000, 1.5), t, 0.001, 0.05, 0.12);
   },
+  // lightning's voice: deep electric thunder-drum (kept above ~150 Hz so phone speakers play it)
+  leadDrum(t){
+    if (!this.ok()) return;
+    this.osc(t, 'sine', 220, 120, 0.25, 0.002, 0.32, 0.9);
+    this.osc(t, 'triangle', 330, 180, 0.12, 0.002, 0.16, 0.35);
+    this.env(this.noiseSrc(t, 0.12, 'lowpass', 900), t, 0.001, 0.1, 0.55);
+    this.env(this.noiseSrc(t, 0.05, 'bandpass', 2600, 2), t, 0.001, 0.04, 0.18);   // electric crackle
+  },
+  // your voice: short, bright 叮
+  ding(t){
+    if (!this.ok()) return;
+    this.osc(t, 'sine', 1760, 1760, 0.18, 0.001, 0.18, 0.28);
+    this.osc(t, 'sine', 3520, 3520, 0.06, 0.001, 0.06, 0.08);
+  },
+  // handover: rising 嗖↗
+  swoosh(t, d){
+    if (!this.ok()) return;
+    const f = this.noiseSrc(t, d, 'bandpass', 500, 3);
+    f.frequency.setValueAtTime(500, t); f.frequency.exponentialRampToValueAtTime(5000, t + d);
+    const g = this.ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + d*0.85); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.03);
+    f.connect(g); g.connect(this.out || this.master);
+    this.osc(t, 'sine', 400, 1760, d, 0.01, d, 0.12);
+  },
+  tick(t){ if (!this.ok()) return; this.osc(t, 'square', 1500, 1500, 0.02, 0.001, 0.025, 0.05); },
+  tom(t){ if (!this.ok()) return; this.osc(t, 'sine', 180, 140, 0.08, 0.002, 0.08, 0.12); },
   // last lead hit: 嗦 (G5), louder and brighter — "your turn next"
   soNote(t){
     if (!this.ok()) return;
@@ -332,8 +357,8 @@ const sfx = {
 
 /* ---------------- levels ---------------- */
 const WEASEL = { kind:'weasel', x:3.6, amp:0, freq:0 };
-const NOTICE_VAR = '这一关是变奏练习：闪电每轮敲的下数不一样，每轮占的时间也跟着变：敲几下就占几拍，你紧接着跟几下。\n听最后那声高一点的「嗦」，画面一暗，就轮到你。';
-const NOTICE_MIX = '这一关两种玩法混在一起：有时是固定长度的「同一音节」，有时是长短不一的变奏，还有带半拍的咚咚锵。\n还是听「嗦」、看画面变暗。';
+const NOTICE_VAR = '这一关是变奏练习：闪电每轮敲的下数不一样，每轮占的时间也跟着变：敲几下就占几拍，你紧接着跟几下。\n闪电是低沉的「咚」，听到上滑的「嗖↗」、画面一暗，就轮到你用清脆的「叮」跟上。';
+const NOTICE_MIX = '这一关两种玩法混在一起：有时是固定长度的「同一音节」，有时是长短不一的变奏，还有带半拍的咚咚锵。\n还是听「嗖↗」、看画面变暗。';
 const LEVELS = [
   // 同一音节: every lead and every answer takes the same 2 beats
   { group:'同一音节', name:'第一关', sub:'1下', villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
@@ -344,7 +369,7 @@ const LEVELS = [
     rounds:['c1','c2','c3','c2','c3','c1','c3','c3'] },
   // 变奏: each round is as long as the lead needs
   { group:'变奏', name:'第四关', sub:'变奏 · 1下、2下', notice:NOTICE_VAR, villainName:'偷蛋黄鼠狼', villain:{ kind:'weasel', x:-1.8, amp:0, freq:0 }, others:[{kind:'hen', x:5.4}, {kind:'pole', x:-8.4}],
-    rounds:['one','one','two','two','one','two','one','two'] },
+    rounds:['one','one','one','two','one','two','two','one','two','two'] },
   { group:'变奏', name:'第五关', sub:'变奏 · 1下、2下、3下', notice:NOTICE_VAR, villainName:'偷蛋黄鼠狼', villain:WEASEL, others:[{kind:'hen', x:-4.2}, {kind:'pole', x:8.2}],
     rounds:['one','two','threeq','one','two','threeq','two','threeq'] },
   // 混合
@@ -407,24 +432,31 @@ function buildSong(){
       const acc = i === P.hits.length - 1;
       G.calls.push({ t:(cs + h)*bt, type, r, i, acc });
       G.resps.push({ t:(rs + h)*bt, type, r, i, done:false, res:null });
-      G.aev.push({ t:(cs + h)*bt, f:acc ? 'so' : 'do' });
-      if (acc) G.aev.push({ t:(cs + h)*bt, f:'crash' });
+      G.aev.push({ t:(cs + h)*bt, f:'lead' });
     });
     cur = rs + P.span;
   });
-  // backing groove (unchanged): kick on even beats, clap on odd beats, hats from section 2, bass, extra half-beat kick in section 3
-  const walk = [55, 65.4, 73.4, 82.4, 73.4, 65.4];
+  // backing, built segment by segment so the fine pulse always divides the current 音节 evenly
   const drumT = [];
-  for (let k = 0; k < cur; k++){
-    const t = k*bt;
-    if (k < 4){ G.aev.push({ t, f:'stick', a:k === 0 }); continue; }
-    const seg = G.segs2.find(sg => k >= sg.a && k < sg.b), sec = seg ? secOf(seg.r) : 0;
-    if (sec >= 1){ G.aev.push({ t, f:'hat', a:0.07 }); G.aev.push({ t:t + bt/2, f:'hat', a:0.04 }); }
-    if (sec >= 1 && k % 2 === 0) G.aev.push({ t, f:'bass', a:walk[(k/2) % walk.length]*2 });
+  for (let k = 0; k < 4; k++) G.aev.push({ t:k*bt, f:'stick', a:k === 0 });
+  const roots = [110, 130.8, 146.8, 164.8];
+  for (const sg of G.segs2){
+    const P = PATTERNS[rounds()[sg.r]], n = P.hits.length, span = sg.b - sg.a, t0 = sg.a*bt;
+    const even = P.hits.every(([h], i) => Math.abs(h - i*span/n) < 1e-6);
+    const step = even ? span/(2*n) : 0.5;                       // 3 hits → 6 ticks, 2 → 4, 1 → 2
+    G.aev.push({ t:t0, f:'tick' });                              // soft 嗒 marks the start of each 音节
+    for (let x = 0; x < span - 1e-6; x += step) G.aev.push({ t:t0 + x*bt, f:sg.kind === 'call' ? 'shakerLo' : 'shaker' });
+    if (sg.kind === 'call') G.aev.push({ t:t0, f:'bass', a:roots[sg.r % roots.length] });
+    else {
+      // handover: a rising 嗖↗ that ends exactly where your turn starts
+      const lastCall = G.calls.filter(c => c.r === sg.r).pop().t, gap = t0 - lastCall;
+      const d = Math.min(0.42, gap*0.85);
+      G.aev.push({ t:t0 - d, f:'swoosh', d });
+    }
   }
-  // lead-and-follow drums: lightning's turn = all 咚 (kick), your turn = all 啪 (clap)
-  for (const c of G.calls){ G.aev.push({ t:c.t, f:'kick', a:1 }); drumT.push(c.t); }
-  for (const q of G.resps){ G.aev.push({ t:q.t, f:'clap' }); G.aev.push({ t:q.t, f:'la' }); drumT.push(q.t); }
+  // lightning's turn: low 雷鼓 on its hits; your turn: clap + bright 叮 on yours
+  for (const c of G.calls) drumT.push(c.t);
+  for (const q of G.resps){ G.aev.push({ t:q.t, f:'clap' }); G.aev.push({ t:q.t, f:'ding' }); drumT.push(q.t); }
   // the lightning moves on every drum hit: big step + branch on its own 咚/锵, small step on the other drum hits
   const stepAt = new Map();
   for (const t of drumT) stepAt.set(Math.round(t*1000), { t, call:null });
@@ -443,13 +475,15 @@ function scheduleAudio(now){
   while (G.ai < G.aev.length && G.aev[G.ai].t < now + 0.15){
     const e = G.aev[G.ai++], at = G.t0 + e.t;
     if (e.t < now - 0.05) continue;
-    sfx.out = sfx.bus ? sfx.bus[(e.f === 'do' || e.f === 'so' || e.f === 'la') ? 'fx' : 'music'] : null;
+    sfx.out = sfx.bus ? sfx.bus[(e.f === 'lead' || e.f === 'ding' || e.f === 'swoosh') ? 'fx' : 'music'] : null;
     if (e.f === 'dong') sfx.dong(at); else if (e.f === 'qiang') sfx.qiang(at);
     else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
     else if (e.f === 'bass') sfx.bass(at, e.a); else if (e.f === 'smallGong') sfx.smallGong(at);
     else if (e.f === 'do') sfx.doNote(at); else if (e.f === 'so') sfx.soNote(at); else if (e.f === 'la') sfx.laNote(at);
     else if (e.f === 'crash') sfx.crash(at);
+    else if (e.f === 'lead') sfx.leadDrum(at); else if (e.f === 'ding') sfx.ding(at); else if (e.f === 'swoosh') sfx.swoosh(at, e.d);
+    else if (e.f === 'tick') sfx.tick(at); else if (e.f === 'shaker') sfx.hat(at, 0.06); else if (e.f === 'shakerLo') sfx.tom(at);
     else if (e.f === 'guide') sfx.guide(at); else if (e.f === 'pad') sfx.pad(at, e.a, e.d);
   }
   if (sfx.bus) sfx.out = sfx.bus.fx;
@@ -485,13 +519,15 @@ function newTip(x, y, a){
   const id = G.idc++;
   return { id, x, y, px:x, py:y, a, path:[{x, y}], lineage:[id], born:G.t, gd:0.01, fresh:true };
 }
-function spawnBranch(m){
+function spawnBranch(m, nHits){
   const side = (m.x > lineX(m.y) ? 1 : -1)*(Math.random() < 0.8 ? 1 : -1) || 1;   // mostly away from the target line
-  const nt = newTip(m.x, m.y, clamp(m.a + side*rnd(0.75, 1.0), 0.25, PI - 0.25));
+  const single = nHits === 1;
+  const nt = newTip(m.x, m.y, clamp(m.a + side*(single ? rnd(1.05, 1.3) : rnd(0.85, 1.1)), 0.15, PI - 0.15));
   nt.path = m.path.slice(); nt.lineage = m.lineage.concat(nt.id);
   const nid = G.idc++; m.id = nid; m.lineage = m.lineage.concat(nid);
   G.tips.push(nt);
-  grow(nt, rnd(1.2, 1.5), 0.15);
+  // far enough from the trunk to read as a separate ball (at least ~a finger width on screen)
+  grow(nt, Math.max(rnd(1.3, 1.6)*(single ? 1.6 : 1), 90/Math.max(cam.s, 1)), 0.15);
   return nt;
 }
 function refreshLive(){
@@ -548,14 +584,13 @@ function doBeatStep(st){
 }
 function doCall(c, st){
   G.pulse = 1; G.cueFlash = 1;
-  if (c.acc){ G.flash = Math.max(G.flash, 0.22); G.accFlash = 1; }
   const m = G.main, vx = tgtX();
   // leftovers (small tips from earlier rounds) creep outward
   for (const t of smallTips()){ if (!t.fresh){ t.a += (t.x > lineX(t.y) ? -1 : 1)*0.12; t.a = clamp(t.a, 0.2, PI - 0.2); grow(t, 1.6, 0.15); } }
   // main steps toward the target
   steer(m);
   grow(m, stepLen(st.w), 0.12);
-  const nb = spawnBranch(m); nb.fresh = true;
+  const nb = spawnBranch(m, PATTERNS[rounds()[c.r]].hits.length); nb.fresh = true;
   // cap: too many leftovers → oldest silently dies out
   const small = smallTips();
   if (small.length > 8){ const old = small.filter(t => !t.fresh).sort((a, b) => a.born - b.born)[0]; if (old) kill(old); }
@@ -846,7 +881,10 @@ function update(dt){
         setTxt('prog', String(bi.r + 1));
         { const pk = rounds()[bi.r]; if (bi.r === 0 || pk !== rounds()[bi.r - 1]) screenText(`这次敲 ${HITS_LABEL[pk]}`, '#d2aaff', 22); }
         setHint('先听，别点');
-      } else if (bi.kind === 'resp'){ bigText('跟！', '#ffc94a', 0.5); startResp(bi.r); setHint('跟着节奏点小球，大球别点'); }
+      } else if (bi.kind === 'resp'){
+        const nx = rounds()[bi.r + 1], cu = rounds()[bi.r];
+        if (nx && PATTERNS[nx].hits.length !== PATTERNS[cu].hits.length) screenText(`下一轮：闪电敲 ${PATTERNS[nx].hits.length} 下`, '#d2aaff', 20);
+        bigText('跟！', '#ffc94a', 0.5); startResp(bi.r); setHint('跟着节奏点小球，大球别点'); }
       else if (bi.kind === 'land'){ startLanding(); }
     }
     if (G.phase === 'play'){
@@ -854,7 +892,7 @@ function update(dt){
         const st = G.steps[G.si];
         if (st.call){
           G.ci++;
-          if (!G.useAC){ if (st.call.acc) sfx.soNote(sfx.now()); else sfx.doNote(sfx.now()); }
+          if (!G.useAC) sfx.leadDrum(sfx.now());
           doCall(st.call, st);
         } else doBeatStep(st);
         G.si++;
@@ -919,7 +957,7 @@ function render(){
   drawSegs();
   if (G.phase === 'play' || G.phase === 'zoomin' || G.phase === 'land'){
     drawTips('main');
-    if (G.dim > 0.01){ ctx.fillStyle = `rgba(4,5,14,${0.5*G.dim})`; ctx.fillRect(-60, -60, W + 120, H + 120); }
+    if (G.dim > 0.01){ ctx.fillStyle = `rgba(4,5,14,${0.72*G.dim})`; ctx.fillRect(-60, -60, W + 120, H + 120); }
     drawTips('small');
   }
   if (G.bolt && G.cracked) drawBolt();
@@ -969,9 +1007,8 @@ function drawCue(){
   ctx.fillStyle = bi.kind === 'resp' ? '#ffc94a' : 'rgba(255,201,74,0.45)'; ctx.fillText('你', x0 + lane*3/4, y - 18);
   for (let k = 0; k <= total; k++){ ctx.fillStyle = k === span ? 'rgba(233,236,255,0.5)' : 'rgba(46,52,102,0.9)'; ctx.fillRect(xAt(k) - 0.5, y - 8, 1, 16); }
   calls.forEach((e, i) => {
-    const x = xAt(hits[i][0] + 0.001), r = e.acc ? 7 : 5.5;
+    const x = xAt(hits[i][0] + 0.001), r = 6;
     ctx.fillStyle = now >= e.t ? '#bfe6ff' : 'rgba(191,230,255,0.3)'; circle(x + 3, y, r);
-    if (e.acc){ ctx.strokeStyle = now >= e.t ? '#ffc94a' : 'rgba(255,201,74,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x + 3, y, r + 3, 0, 2*PI); ctx.stroke(); }
   });
   resps.forEach((e, i) => {
     const x = xAt(span + hits[i][0] + 0.001), r = hits[i][1] === 'q' ? 7 : 5.5;
@@ -1047,6 +1084,7 @@ function drawSegs(){
       let w = (main ? 3 : 1.4)*zf;
       const inWin = G.winner && G.winner.lineage.includes(s.id);
       if (G.struck) a *= 0.25 + strikeA;
+      if (G.phase === 'play' || G.phase === 'zoomin') a *= 0.72;   // the lead lightning is a little dimmer too
       if (G.cracked && !G.struck && !inWin) a *= 0.45;
       const frac = clamp((G.t - s.born)/(s.gd || 0.12), 0, 1);
       ctx.beginPath(); strokeSeg(s, frac);
@@ -1074,7 +1112,7 @@ function drawTips(which){
     if ((which === 'main') !== main) continue;
     const [sx, sy] = w2s(...tipPos(t));
     let r, col, core = 1;
-    if (main){ r = 15*(1 + 0.25*G.pulse); col = '150,220,255'; }
+    if (main){ r = 15*(1 + 0.25*G.pulse); col = '150,220,255'; core = G.phase === 'play' ? 0.75 : 1; }
     else if (G.inResp || swell > 0){ r = 7 + 7*swell*swell; col = G.inResp ? '215,170,255' : '170,160,200'; }
     else { r = 6; col = '150,150,175'; core = 0.45; }
     const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r*2.2);
