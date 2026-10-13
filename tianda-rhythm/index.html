@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月13日 23:00 · 无限深渊：裂地下钻跟着节拍，不再读秒</p>
+  <p class="ver">版本 10月13日 23:10 · 无限深渊：劈中立刻往下冲</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -673,15 +673,17 @@ function startDescent(){
   G.crack = { x:G.winner.x, shift:0 };
   const v = villain(); v.state = 'fall'; v.fy = 0; v.fv = 0; v.spin = 0;
   const vc = victimObj(); vc.hopTo = null; vc.thankT = vc.thankT || 0; vc.bye = true;
+  if (vc.state !== 'grateful'){ vc.state = 'grateful'; vc.thankT = 0; }
   G.dive = newTip(G.winner.x, GROUND, PI/2); G.dive.id = 'dive';
   // beat clock for the descent: start on the next whole beat, keep the drums going
-  G.dBeat = G.beat; G.dUseAC = !!(sfx.ac && sfx.ac.state === 'running'); G.dT0 = nowClock() + 0.05; G.dK = -1;
+  G.dBeat = G.beat; G.dUseAC = !!(sfx.ac && sfx.ac.state === 'running'); G.dT0 = nowClock() + 0.02; G.dK = -1;
   if (G.dUseAC) for (let k = 0; k < DESCENT_BEATS; k++){
     const t = G.dT0 + k*G.dBeat;
     sfx.via('music', () => { if (k % 2 === 0){ sfx.kick(t, 1); sfx.bass(t, [110, 130.8, 146.8, 164.8][(k/2) % 4]); } else sfx.clap(t); sfx.hat(t, 0.06); sfx.hat(t + G.dBeat/2, 0.04); });
   }
   worldText(v.x, GROUND - 3, '啊～～', '#e9ecff', 20);
   screenText('大地裂开了！', '#ffc94a', 22);
+  if (!G.boomed){ G.boomed = true; sfx.boom(G.power/25); }
 }
 function updateDescend(dt){
   G.dt2 += dt; const t = G.dt2, c = G.crack;
@@ -692,12 +694,12 @@ function updateDescend(dt){
   for (const o of G.objs){ if (o.villain) continue; o.x += (o.x < c.x ? -1 : 1)*d; }
   if (Math.random() < dt*30) G.parts.push({ x:c.x + rnd(-0.3, 0.3)*(1 + c.shift), y:GROUND + rnd(0, 0.5), vx:rnd(-1, 1), vy:rnd(1, 4), life:1, max:1, c:'#3a3326', sz:rnd(2, 4), g:12, rock:true });
   // the villain tumbles into the crack
-  const v = villain(); if (b > 1){ v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; } v.x += (c.x - v.x)*Math.min(1, dt*3);
+  const v = villain(); if (b > 0.3){ v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; } v.x += (c.x - v.x)*Math.min(1, dt*3);
   // the lightning drills down one step per beat, starting on beat 3
   const k = Math.floor(b);
   if (k !== G.dK && k >= 0){
     G.dK = k; G.pulse = 1;
-    if (k >= 3 && k < DESCENT_BEATS){
+    if (k < DESCENT_BEATS){
       const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
       grow(m, 2.4, Math.min(0.15, G.dBeat*0.4));
       sfx.via('fx', () => sfx.leadDrum(sfx.now()));
@@ -1008,9 +1010,8 @@ function tipPos(t){
 function camTarget(){
   if (G.phase === 'descend'){
     const b = (nowClock() - G.dT0)/G.dBeat;
-    if (b < 3) return { x:G.crack.x, y:GROUND - 0.5, s:Math.max(S.full, S.levels[0]*0.45), sp:3 };
-    const [x, y] = tipPos(G.dive), s = S.levels[0];
-    return { x, y:y + 0.1*H/s, s, sp:5 };
+    const [x, y] = tipPos(G.dive), s = S.levels[0]*(b < 3 ? 0.6 + 0.4*b/3 : 1);
+    return { x, y:y + 0.12*H/s, s, sp:b < 1 ? 4 : 6 };
   }
   if ((G.phase === 'finale' || G.phase === 'result') && G.rb){
     const ft = G.ft;
@@ -1104,7 +1105,7 @@ function update(dt){
     if (!G.topFlash && G.ft >= FIN.climbEnd){ G.topFlash = true; G.flash = 0.5; }
     if (!G.struck && G.ft >= FIN.impact){ G.struck = true; strike(); }
     if (!G.boomed && G.ft >= FIN.impact + 0.55){ G.boomed = true; sfx.boom(G.power/25); }
-    if (G.endless && G.outcome === 'hit' && G.ft >= FIN.impact + 1.7){ startDescent(); }
+    if (G.endless && G.outcome === 'hit' && G.struck && G.phase === 'finale'){ startDescent(); }
     else if (!G.shown && G.ft >= FIN.result){ G.shown = true; G.phase = 'result'; showResult(); }
   }
   const ct = camTarget(), sp = ct.sp || (G.phase === 'zoomin' ? 3.2 : 5), k = 1 - Math.exp(-dt*sp);
