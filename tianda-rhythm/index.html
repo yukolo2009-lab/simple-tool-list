@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月14日 00:30 · 无限深渊：一根闪电到底、节奏不停</p>
+  <p class="ver">版本 10月14日 22:10 · 无限深渊：裂地不定格、镜头跟着闪电往下钻</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -166,7 +166,8 @@ const SAMPLES = {"slow": "SUQzBAAAAAABBFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWF
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
 const PI = Math.PI, GROUND = 42;
-const FIN = { pause:0.4, climbEnd:1.95, impact:2.65, result:5.0 };
+const FIN0 = { pause:0.4, climbEnd:1.95, impact:2.65, result:5.0 };
+let FIN = FIN0;   // endless swaps in a beat-sized version so the strike never stalls the groove
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const FONT_D = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif';
 const FONT_B = '"PingFang SC","Microsoft YaHei",system-ui,sans-serif';
@@ -556,14 +557,14 @@ function settle(t){ const [x, y] = tipPos(t); t.px = x; t.py = y; }
 function growTo(t, nx, ny, gd){
   settle(t);
   const px = t.x, py = t.y;   // segment starts from the tip's logical end
-  ny = Math.min(ny, GROUND);
+  if (!G.deep) ny = Math.min(ny, GROUND);
   t.px = px; t.py = py; t.x = nx; t.y = ny; t.born = G.t; t.gd = gd;
   t.path.push({ x:nx, y:ny });
   G.segs.push(mkSeg(px, py, nx, ny, t.id, gd));
 }
 function grow(t, len, gd){
   let nx = t.x + Math.cos(t.a)*len, ny = t.y + Math.sin(t.a)*len;
-  if (ny > GROUND){ const k = (GROUND - t.y)/(ny - t.y); nx = t.x + (nx - t.x)*k; ny = GROUND; }
+  if (ny > GROUND && !G.deep){ const k = (GROUND - t.y)/(ny - t.y); nx = t.x + (nx - t.x)*k; ny = GROUND; }
   growTo(t, nx, ny, gd);
 }
 function newTip(x, y, a){
@@ -665,7 +666,7 @@ function judgeMiss(rp){
 }
 
 /* ---------------- ending ---------------- */
-const DESCENT_BEATS = 8;
+const DESCENT_BEATS = 4;
 const nowClock = () => (sfx.ac && sfx.ac.state === 'running') ? sfx.now() : performance.now()/1000;
 // endless: keep a steady drum grid running through landing, strike and descent (no gaps between layers)
 function gridDrums(){
@@ -690,14 +691,14 @@ function startDescent(){
   // descent beats sit on the song's beat grid
   G.dBeat = G.beat; G.dUseAC = G.useAC;
   G.dT0 = G.t0 + Math.ceil((nowClock() - G.t0)/G.beat - 0.05)*G.beat; G.dK = -1;
-  G.dive.a = PI/2; grow(G.dive, 1.8, 0.1);          // surge right away
+  G.deep = true; G.dK = 0; G.dive.a = PI/2; grow(G.dive, 2.6, Math.min(0.15, G.beat*0.4));   // surge right away, through the ground
   worldText(v.x, GROUND - 3, '啊～～', '#e9ecff', 20);
   if (!G.boomed){ G.boomed = true; sfx.boom(G.power/25); }
 }
 function updateDescend(dt){
   G.dt2 += dt; const c = G.crack;
   const b = (nowClock() - G.dT0)/G.dBeat;            // beats since the descent grid started
-  const prev = c.shift; c.shift = Math.pow(Math.max(0, b + 0.5)/(DESCENT_BEATS + 0.5), 1.6)*12;
+  const prev = c.shift; c.shift = Math.pow(clamp((b + 0.15)/1.4, 0, 1), 0.5)*3.2;
   const d = c.shift - prev;
   for (const o of G.objs){ if (o.villain) continue; o.x += (o.x < c.x ? -1 : 1)*d; }
   if (Math.random() < dt*30) G.parts.push({ x:c.x + rnd(-0.3, 0.3)*(1 + c.shift), y:GROUND + rnd(0, 0.5), vx:rnd(-1, 1), vy:rnd(1, 4), life:1, max:1, c:'#3a3326', sz:rnd(2, 4), g:12, rock:true });
@@ -707,7 +708,7 @@ function updateDescend(dt){
   if (k !== G.dK && k >= 0 && k < DESCENT_BEATS){
     G.dK = k; G.pulse = 1;
     const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
-    grow(m, 2.3, Math.min(0.15, G.dBeat*0.4));
+    grow(m, 2.6, Math.min(0.15, G.dBeat*0.4));
     sfx.via('fx', () => sfx.leadDrum(sfx.now()));
   }
   if (b >= DESCENT_BEATS - 0.02) nextLayer();
@@ -721,9 +722,9 @@ function nextLayer(){
   for (const sg of segs) sg.p = sg.p.map((v, i) => i % 2 ? v - dy : v);
   tip.path = tip.path.map(p => ({ x:p.x, y:p.y - dy })); tip.y -= dy; tip.py -= dy;
   const cloudY = (G.cloudY || 0) - dy;
-  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, idc:G.idc };
+  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, idc:G.idc, t:G.t };
   newGame(G.lv, 'play');
-  Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo, idc:keep.idc, cloudY });
+  Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo, idc:keep.idc, t:keep.t, cloudY });   // keep the clock: every old segment stays fully drawn
   G.lstat = { perfect:keep.perfect, good:keep.good, off:keep.off, wrong:keep.wrong };
   applyLayer(keep.layer, ox);
   G.segs = segs; G.selected = true;
@@ -741,21 +742,22 @@ function lightningLost(){
 function startLanding(){
   if (!G.main){ lightningLost(); return; }
   G.phase = 'land'; G.lt = 0; G.inResp = false;
+  if (G.endless) G.landK = Math.round((nowClock() - G.t0)/G.beat) + 2;   // touch down exactly 2 beats later, on the grid
   for (const t of G.tips) t.fresh = false;
-  sfx.startSlow();
-  if (!G.endless) screenText('要落地啦！', '#bfe6ff', 22);
+  if (!G.endless){ sfx.startSlow(); screenText('要落地啦！', '#bfe6ff', 22); }
+  const LD = G.endless ? 2*G.beat : 2.2;
   let m = G.main, vx = tgtX();
   const strays = smallTips();
   if (G.endless && strays.length >= 3){
     m = strays.reduce((a, b) => Math.abs(b.x - vx) > Math.abs(a.x - vx) ? b : a);
     G.main = m; G.mainSet = new Set(m.lineage);
-    growTo(m, m.x + Math.sign(m.x - vx || 1)*1.5, GROUND, 2.2);
+    growTo(m, m.x + Math.sign(m.x - vx || 1)*1.5, GROUND, LD);
     screenText('小叉太多，电被抢走了！', '#ff4d5e', 22);
   } else {
     const nx = m.x + clamp(vx - m.x, -3, 3);
-    growTo(m, nx, GROUND, 2.2);
+    growTo(m, nx, GROUND, LD);
   }
-  for (const t of smallTips()) grow(t, 1.2, 2.2);
+  for (const t of smallTips()) grow(t, 1.2, LD);
   setHint('');
 }
 function climbFrac(){ return Math.pow(clamp((G.ft - FIN.pause)/(FIN.climbEnd - FIN.pause - 0.15), 0, 1), 1.5); }
@@ -768,6 +770,7 @@ function boltPointAt(frac){
 }
 function startFinale(tip){
   G.phase = 'finale'; G.ft = 0; G.winner = tip;
+  FIN = G.endless ? { pause:0, climbEnd:1.25*G.beat, impact:2*G.beat, result:99 } : FIN0;
   const left = smallTips().length;
   const v = villain(), x = tip.x;
   let outcome = 'ground', hitObj = null;
@@ -797,8 +800,7 @@ function strike(){
   G.flash = 1; G.shake = RM ? 0.12 : 0.9;
   const v = villain(), w = G.winner;
   // impact: hit-stop, camera punch, shockwave, big 轰, scorch, debris
-  G.hitStop = RM ? 0 : 0.14;
-  cam.s *= RM ? 1 : 1.3;
+  if (G.endless){ G.slowT = RM ? 0 : 0.32; } else { G.hitStop = RM ? 0 : 0.14; cam.s *= RM ? 1 : 1.3; }
   G.shock = { x:w.x, y:GROUND - 0.3, t:0 };
   G.boomText = { t:0, txt:G.outcome === 'hit' ? '轰！' : '咔嚓！' };
   G.scorch = { x:w.x };
@@ -1015,10 +1017,12 @@ function tipPos(t){
 
 /* ---------------- update ---------------- */
 function camTarget(){
-  if (G.phase === 'descend'){
-    const b = (nowClock() - G.dT0)/G.dBeat;
-    const [x, y] = tipPos(G.dive), s = S.levels[0]*(b < 3 ? 0.6 + 0.4*b/3 : 1);
-    return { x, y:y + 0.12*H/s, s, sp:b < 1 ? 4 : 6 };
+  if (G.endless && (G.phase === 'land' || G.phase === 'finale' || G.phase === 'descend')){
+    const t = G.phase === 'descend' ? G.dive : G.phase === 'finale' ? G.winner : G.main;
+    const [x, y] = tipPos(t);
+    if (G.phase === 'descend'){ const s = S.levels[0]*0.6; return { x, y:y + 0.12*H/s, s, sp:5 }; }   // tip upper-middle: split ground stays in view
+    const s = Math.max(Math.min(cam.s, S.levels[0]*0.8), S.levels[0]*0.55);
+    return { x, y:y + 0.08*H/s, s, sp:7 };
   }
   if ((G.phase === 'finale' || G.phase === 'result') && G.rb){
     const ft = G.ft;
@@ -1055,7 +1059,7 @@ function camTarget(){
 }
 function update(dt){
   G.t += dt;
-  const slowWorld = (G.phase === 'play' && G.inResp) || G.phase === 'land' || (G.phase === 'finale' && G.ft < FIN.impact);
+  const slowWorld = (G.phase === 'play' && G.inResp) || (!G.endless && (G.phase === 'land' || (G.phase === 'finale' && G.ft < FIN.impact)));
   const rdt = dt*(slowWorld ? 0.15 : 1);
   for (const d of rain){ d.y += d.v*rdt; d.x -= d.v*0.18*rdt; if (d.y > H + 30) Object.assign(d, newDrop(false)); }
   if (G.phase === 'play' || G.phase === 'zoomin' || G.phase === 'land') G.playT += rdt;
@@ -1110,7 +1114,7 @@ function update(dt){
       if (bi.kind === 'count' && !G.noCount){ const n = 4 - Math.floor(now/G.beat); if (n >= 1 && n <= 4 && G.lastCount !== n){ G.lastCount = n; bigText(String(n), '#e9ecff', 0.55); } }
     }
   }
-  if (G.phase === 'land'){ G.lt += dt; if (G.lt >= 2.35) startFinale(G.main); }
+  if (G.phase === 'land'){ G.lt += dt; if (G.endless ? nowClock() >= G.t0 + G.landK*G.beat : G.lt >= 2.35) startFinale(G.main); }
   if (G.phase === 'descend') updateDescend(dt);
   gridDrums();
   if (G.phase === 'finale' || G.phase === 'result'){
@@ -1143,7 +1147,7 @@ function setTxt(id, v){ if (hudCache[id] !== v){ hudCache[id] = v; $(id).textCon
 function updateHud(){
   if (G.phase !== 'play' && G.phase !== 'land') return;
   const lvl = G.level;
-  const chipT = G.phase === 'land' ? '慢动作' : G.inResp ? '轮到你' : ['很稳', '小心', '危险'][lvl];
+  const chipT = G.phase === 'land' ? (G.endless ? '往下劈' : '慢动作') : G.inResp ? '轮到你' : ['很稳', '小心', '危险'][lvl];
   if (hudCache.chip !== chipT){ hudCache.chip = chipT; const c = $('chip'); c.textContent = chipT; c.className = 'chip' + (lvl === 1 ? ' y' : lvl >= 2 ? ' r' : ''); }
 }
 
@@ -1184,7 +1188,7 @@ function render(){
     rg.addColorStop(0, `rgba(${col},0)`); rg.addColorStop(1, `rgba(${col},${0.42*a})`);
     ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
   }
-  const lbOn = G.phase === 'land' || G.phase === 'finale';
+  const lbOn = !G.endless && (G.phase === 'land' || G.phase === 'finale');
   G.lb += ((lbOn ? 1 : 0) - G.lb)*0.15;
   if (G.lb > 0.01){
     const bh = H*0.06*G.lb; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh);
@@ -1662,7 +1666,7 @@ let last = performance.now();
 function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
   if (G.hitStop > 0){ G.hitStop -= dt; G.flash = Math.max(G.flash, 0.6); }
-  else if (!G.paused) update(dt);
+  else if (!G.paused){ if (G.slowT > 0){ G.slowT -= dt; update(dt*0.3); } else update(dt); }
   render(); requestAnimationFrame(frame);
 }
 addEventListener('resize', resize);
