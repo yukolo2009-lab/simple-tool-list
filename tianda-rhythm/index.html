@@ -119,7 +119,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月14日 22:10 · 无限深渊：裂地不定格、镜头跟着闪电往下钻</p>
+  <p class="ver">版本 10月15日 20:40 · 无限深渊：每层接回云彩再重重劈下</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -760,7 +760,9 @@ function startLanding(){
   for (const t of smallTips()) grow(t, 1.2, LD);
   setHint('');
 }
-function climbFrac(){ return Math.pow(clamp((G.ft - FIN.pause)/(FIN.climbEnd - FIN.pause - 0.15), 0, 1), 1.5); }
+function climbFrac(){ return Math.pow(clamp((G.ft - FIN.pause)/(FIN.climbEnd - FIN.pause - (G.endless ? 0.06 : 0.15)), 0, 1), 1.5); }
+// endless: after touching the cloud the bolt comes back down as a visible front (accelerating = heavy)
+function downFrac(){ const f = clamp((G.ft - FIN.climbEnd)/(FIN.impact - FIN.climbEnd - 0.03), 0, 1); return f*f; }
 function boltPointAt(frac){
   const tot = G.rbCum[G.rbCum.length - 1], d = frac*tot;
   for (let i = 1; i < G.rb.length; i++){
@@ -770,7 +772,7 @@ function boltPointAt(frac){
 }
 function startFinale(tip){
   G.phase = 'finale'; G.ft = 0; G.winner = tip;
-  FIN = G.endless ? { pause:0, climbEnd:1.25*G.beat, impact:2*G.beat, result:99 } : FIN0;
+  FIN = G.endless ? { pause:0, climbEnd:2*G.beat, impact:3*G.beat, result:99 } : FIN0;
   const left = smallTips().length;
   const v = villain(), x = tip.x;
   let outcome = 'ground', hitObj = null;
@@ -1018,6 +1020,11 @@ function tipPos(t){
 /* ---------------- update ---------------- */
 function camTarget(){
   if (G.endless && (G.phase === 'land' || G.phase === 'finale' || G.phase === 'descend')){
+    if (G.phase === 'finale' && G.rb && G.ft < FIN.impact){
+      const p = G.ft < FIN.climbEnd ? boltPointAt(climbFrac()) : boltPointAt(1 - downFrac());
+      const s = clamp(S.full*1.5/(G.layer + 1), S.full*0.3, S.levels[0]*0.6);
+      return { x:p.x*0.5 + ((G.ox || 0) + G.winner.x)*0.25, y:p.y, s, sp:G.ft < FIN.climbEnd ? 9 : 14 };
+    }
     const t = G.phase === 'descend' ? G.dive : G.phase === 'finale' ? G.winner : G.main;
     const [x, y] = tipPos(t);
     if (G.phase === 'descend'){ const s = S.levels[0]*0.6; return { x, y:y + 0.12*H/s, s, sp:5 }; }   // tip upper-middle: split ground stays in view
@@ -1115,7 +1122,7 @@ function update(dt){
     }
   }
   if (G.phase === 'land'){ G.lt += dt; if (G.endless ? nowClock() >= G.t0 + G.landK*G.beat : G.lt >= 2.35) startFinale(G.main); }
-  if (G.phase === 'descend') updateDescend(dt);
+  if (G.phase === 'descend'){ G.ft += dt; updateDescend(dt); }
   gridDrums();
   if (G.phase === 'finale' || G.phase === 'result'){
     G.ft += dt;
@@ -1428,6 +1435,7 @@ function drawBolt(){
   const ft = G.ft, thick = G.power >= 25 ? 9 : G.power >= 12 ? 5.5 : 2.6;
   let a, base, front = null;
   if (ft < FIN.climbEnd){ front = boltPointAt(climbFrac()); a = 1; base = 2.2; }
+  else if (ft < FIN.impact && G.endless){ front = boltPointAt(1 - downFrac()); front.down = true; a = 1; base = 3.2; }
   else if (ft < FIN.impact){ a = 0.75 + 0.25*Math.sin(ft*70); base = 2.4; }
   else { a = boltAlpha(ft - FIN.impact); base = thick; }
   if (a <= 0) return;
@@ -1435,7 +1443,10 @@ function drawBolt(){
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const path = () => {
     ctx.beginPath();
-    if (front){
+    if (front && front.down){
+      const [fx, fy] = w2s(front.x, front.y); ctx.moveTo(fx, fy);
+      for (let i = front.i; i < G.rb.length; i++){ const [x, y] = w2s(G.rb[i].x, G.rb[i].y); ctx.lineTo(x, y); }
+    } else if (front){
       for (let i = 0; i < front.i; i++){ const [x, y] = w2s(G.rb[i].x, G.rb[i].y); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
       const [fx, fy] = w2s(front.x, front.y); ctx.lineTo(fx, fy);
     } else G.bolt.forEach((p, i) => { const [x, y] = w2s(p.x, p.y); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
