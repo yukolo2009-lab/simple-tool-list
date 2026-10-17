@@ -89,6 +89,7 @@ canvas{position:fixed;inset:0;display:block}
 .settings small{display:block;font-weight:400;font-size:12px;color:var(--mute)}
 .settings input[type=range]{width:100%;accent-color:var(--amber);touch-action:auto;min-height:28px}
 .settings .vol b{font-variant-numeric:tabular-nums;color:var(--amber);min-width:2.5em;text-align:right;align-self:center}
+.settings .lyhead{margin:4px 0 -4px;font-size:13px;font-weight:700;color:var(--volt)}
 .settings .chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:700;cursor:pointer}
 .settings .chk input{width:22px;height:22px;accent-color:var(--amber);margin:0;flex:none}
 @media (max-height:620px){.panel h1{font-size:40px}.grade{font-size:48px}}
@@ -119,7 +120,7 @@ canvas{position:fixed;inset:0;display:block}
   </ol>
   <div class="levels" id="levels"></div>
   <button class="setbtn" id="openSet">音量和设置</button>
-  <p class="ver">版本 10月16日 21:20 · 恢复合成电子音效</p>
+  <p class="ver">版本 10月17日 23:50 · 低音鼓、反拍军鼓、厚“咚”、连准叠加（设置里可开关）</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -128,6 +129,14 @@ canvas{position:fixed;inset:0;display:block}
   <label class="vol" for="v_fx"><span>闪电音效<small>闪电的“咚”、你的“叮”</small></span><input type="range" id="v_fx" min="0" max="100" step="5"><b id="l_fx">50</b></label>
   <label class="vol" for="v_strike"><span>劈下来的声音<small>慢动作、炸裂、雷声</small></span><input type="range" id="v_strike" min="0" max="100" step="5"><b id="l_strike">10</b></label>
   <label class="vol" for="v_bpm"><span>速度<small>每分钟多少拍，所有关卡统一；下一局开始生效</small></span><input type="range" id="v_bpm" min="60" max="160" step="2"><b id="l_bpm">130</b></label>
+  <p class="lyhead">加强节奏（可单独开关）</p>
+  <label class="chk" for="ly_kick"><input type="checkbox" id="ly_kick"><span>低音鼓<small>每拍一下“咚”，推着节奏往前走</small></span></label>
+  <label class="chk" for="ly_snare"><input type="checkbox" id="ly_snare"><span>反拍军鼓<small>第 2、4 拍“啪”，强弱更分明</small></span></label>
+  <label class="chk" for="ly_thick"><input type="checkbox" id="ly_thick"><span>更厚的闪电“咚”<small>加一层超低音和电流尾巴</small></span></label>
+  <p class="lyhead">连准叠加（连续“真准”每 4 下升一档，最多 4 档；一次不准就清零）</p>
+  <label class="chk" for="cb_tap"><input type="checkbox" id="cb_tap"><span>击打声变厚<small>每升一档，你的击打声多一层和声</small></span></label>
+  <label class="chk" for="cb_busy"><input type="checkbox" id="cb_busy"><span>背景节奏变密<small>依次加入细碎踩镲、行进贝斯、和弦、开镲</small></span></label>
+  <label class="chk" for="cb_big"><input type="checkbox" id="cb_big"><span>最后一击更响<small>档位越高，劈下时越重、震得越狠</small></span></label>
   <label class="chk" for="skipIntro"><input type="checkbox" id="skipIntro"><span>跳过开场<small>选完关卡直接开始，不用点坏蛋、按开劈</small></span></label>
   <button class="btn" id="closeSet">好了</button>
 </section>
@@ -256,6 +265,23 @@ const sfx = {
   clap(t){ if (!this.ok()) return; for (const o of [0, 0.011, 0.023]) this.env(this.noiseSrc(t + o, 0.12, 'bandpass', 1400, 0.9), t + o, 0.001, o ? 0.03 : 0.13, 0.42); },
   hat(t, v){ if (!this.ok()) return; this.env(this.noiseSrc(t, 0.05, 'highpass', 8000), t, 0.001, 0.035, v || 0.08); },
   stick(t, hi){ if (!this.ok()) return; this.osc(t, 'square', hi ? 1700 : 1250, hi ? 1700 : 1250, 0.03, 0.001, 0.04, 0.12); },
+  // extra layer 1: four-on-the-floor kick, punchy with a short click on top
+  kick4(t){ if (!this.ok() || !SET.layer.kick) return; this.osc(t, 'sine', 165, 48, 0.2, 0.002, 0.22, 0.75); this.env(this.noiseSrc(t, 0.02, 'highpass', 3000), t, 0.0005, 0.012, 0.18); },
+  // extra layer 2: backbeat snare on 2 and 4 — tone body + crisp noise
+  snare(t){ if (!this.ok() || !SET.layer.snare) return; this.osc(t, 'triangle', 240, 170, 0.1, 0.001, 0.1, 0.32); this.env(this.noiseSrc(t, 0.18, 'bandpass', 2200, 0.6), t, 0.001, 0.15, 0.55); this.env(this.noiseSrc(t, 0.08, 'highpass', 6000), t, 0.001, 0.06, 0.2); },
+  // combo layer: your hit grows a fifth, an octave, then a shimmer tail
+  tapLayer(t, tier){
+    if (!this.ok() || !SET.combo.tap || tier < 1) return;
+    this.via('fx', () => {
+      this.osc(t, 'sine', 2637, 2637, 0.16, 0.001, 0.16, 0.16);                                          // fifth
+      if (tier >= 2) this.osc(t, 'triangle', 3520, 3520, 0.12, 0.001, 0.12, 0.1);                        // octave
+      if (tier >= 3) [5274, 7040].forEach((f, i) => this.osc(t + 0.03 + i*0.04, 'sine', f, f, 0.35, 0.002, 0.35, 0.05));   // shimmer
+      if (tier >= 4){ this.osc(t, 'sine', 880, 880, 0.2, 0.001, 0.22, 0.14); this.env(this.noiseSrc(t, 0.25, 'highpass', 9000), t, 0.002, 0.22, 0.16); }
+    });
+  },
+  tierUp(n){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => { [0, 0.07, 0.14].forEach((d, i) => this.osc(t + d, 'triangle', 660*Math.pow(1.26, i + n - 1), 660*Math.pow(1.26, i + n - 1), 0.12, 0.002, 0.14, 0.14)); this.env(this.noiseSrc(t + 0.14, 0.3, 'highpass', 7000), t + 0.14, 0.002, 0.28, 0.12); }); },
+  bigHit(tier){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => { this.osc(t, 'sine', 90, 30, 0.6 + 0.2*tier, 0.003, 0.7 + 0.2*tier, 0.5 + 0.15*tier); this.env(this.noiseSrc(t, 0.9, 'lowpass', 700), t, 0.004, 0.6 + 0.15*tier, 0.25 + 0.12*tier); if (tier >= 3) this.dong(t + 0.04); }); },
+  tierDown(){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => this.osc(t, 'sine', 520, 180, 0.22, 0.003, 0.24, 0.14)); },
   bass(t, f){ if (!this.ok()) return; this.osc(t, 'triangle', f, f, 0.3, 0.005, 0.28, 0.42); },
   // lightning's turn: always 哆 (C5), plucky lead + a little electric fizz
   doNote(t){
@@ -271,6 +297,11 @@ const sfx = {
     this.osc(t, 'triangle', 330, 180, 0.12, 0.002, 0.16, 0.35);
     this.env(this.noiseSrc(t, 0.12, 'lowpass', 900), t, 0.001, 0.1, 0.55);
     this.env(this.noiseSrc(t, 0.05, 'bandpass', 2600, 2), t, 0.001, 0.04, 0.18);   // electric crackle
+    if (SET.layer.thick){   // extra layer 3: thicker 咚 — sub drop, a detuned body and a longer crackle tail
+      this.osc(t, 'sine', 110, 46, 0.35, 0.003, 0.42, 0.85);
+      this.osc(t, 'sawtooth', 160, 95, 0.1, 0.002, 0.12, 0.12);
+      this.env(this.noiseSrc(t, 0.16, 'bandpass', 1800, 1.2), t, 0.002, 0.14, 0.22);
+    }
   },
   // your voice: short, bright 叮
   ding(t){
@@ -434,8 +465,8 @@ const THANKS = {
   bunny: ['胡萝卜送给你！', '雷公最棒！', '蹦蹦～谢谢！'],
   frog:  ['呱！谢谢雷公！', '呱呱呱～你好帅！', '给你表演个跳水！'],
 };
-const SET = { vol:{ music:1.0, fx:0.5, strike:0.1 }, skip:false, bpm:130 };   // defaults = the author's tuned settings
-try { const s0 = JSON.parse(localStorage.getItem('tdlp-rhythm-settings') || 'null'); if (s0){ Object.assign(SET.vol, s0.vol || {}); SET.skip = !!s0.skip; if (s0.bpm) SET.bpm = clamp(+s0.bpm, 60, 160); } } catch(e){}
+const SET = { vol:{ music:1.0, fx:0.5, strike:0.1 }, skip:false, bpm:130, layer:{ kick:true, snare:true, thick:true }, combo:{ tap:true, busy:true, big:true } };   // defaults = the author's tuned settings
+try { const s0 = JSON.parse(localStorage.getItem('tdlp-rhythm-settings') || 'null'); if (s0){ Object.assign(SET.vol, s0.vol || {}); SET.skip = !!s0.skip; if (s0.layer) Object.assign(SET.layer, s0.layer); if (s0.combo) Object.assign(SET.combo, s0.combo); if (s0.bpm) SET.bpm = clamp(+s0.bpm, 60, 160); } } catch(e){}
 function saveSettings(){ try { localStorage.setItem('tdlp-rhythm-settings', JSON.stringify(SET)); } catch(e){} }
 let best = {};
 try { best = JSON.parse(localStorage.getItem('tdlp-rhythm-best8') || '{}') || {}; } catch(e){ best = {}; }
@@ -456,7 +487,7 @@ function newGame(i, phase){
     objs:[v, victim, ...L.others.map(o => Object.assign({}, o, { state:'idle', dir:1 }))],
     calls:[], resps:[], aev:[], ci:0, ai:0, curSeg:-2, inResp:false, respCam:null,
     level:0, tint:0, warm:0, levelBars:[0,0,0],
-    perfect:0, good:0, miss:0, wrong:0, combo:0, maxCombo:0, cueFlash:0,
+    perfect:0, good:0, miss:0, wrong:0, combo:0, maxCombo:0, cueFlash:0, pc:0, tier:0, gold:0, ck:null,
     selected:false, parts:[], texts:[], flash:0, shake:0, pulse:0, lb:0,
     winner:null, struck:false, shown:false, cracked:false, topFlash:false, boomed:false
   };
@@ -497,6 +528,7 @@ function buildSong(){
   // backing, built segment by segment so the fine pulse always divides the current 音节 evenly
   const drumT = [];
   if (!G.noCount) for (let k = 0; k < 4; k++) G.aev.push({ t:k*bt, f:'stick', a:k === 0 });
+  for (let k = 0; k < cur; k++){ G.aev.push({ t:k*bt, f:'kick4' }); if (k % 2 === 1 && (G.noCount || k >= 4)) G.aev.push({ t:k*bt, f:'snare' }); }
   const roots = [110, 130.8, 146.8, 164.8];
   for (const sg of G.segs2){
     const P = PATTERNS[rounds()[sg.r]], n = P.hits.length, span = sg.b - sg.a, t0 = sg.a*bt;
@@ -529,7 +561,7 @@ function scheduleAudio(now){
     if (e.t < now - 0.05) continue;
     sfx.out = sfx.bus ? sfx.bus[(e.f === 'lead' || e.f === 'ding' || e.f === 'swoosh') ? 'fx' : 'music'] : null;
     if (e.f === 'dong') sfx.dong(at); else if (e.f === 'qiang') sfx.qiang(at);
-    else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'clap') sfx.clap(at);
+    else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'kick4') sfx.kick4(at); else if (e.f === 'snare') sfx.snare(at); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
     else if (e.f === 'bass') sfx.bass(at, e.a); else if (e.f === 'smallGong') sfx.smallGong(at);
     else if (e.f === 'do') sfx.doNote(at); else if (e.f === 'so') sfx.soNote(at); else if (e.f === 'la') sfx.laNote(at);
@@ -662,13 +694,31 @@ function startResp(r){
 }
 function endResp(){ G.inResp = false; updateLevel(); }
 function judgeMiss(rp){
-  rp.done = true; rp.res = 'miss'; G.miss++; G.combo = 0;
+  rp.done = true; rp.res = 'miss'; G.miss++; G.combo = 0; comboBreak();
 }
 
 /* ---------------- ending ---------------- */
 const DESCENT_BEATS = 4;
 const nowClock = () => (sfx.ac && sfx.ac.state === 'running') ? sfx.now() : performance.now()/1000;
 // endless: keep a steady drum grid running through landing, strike and descent (no gaps between layers)
+// combo layer: the backing gets busier per tier — 16th hats, walking bass, a chord pad, offbeat open hats
+function comboGrid(){
+  if (!G.useAC || !sfx.bus || !(sfx.ac && sfx.ac.state === 'running')) return;
+  if (G.phase !== 'play' && !(G.endless && (G.phase === 'land' || G.phase === 'finale' || G.phase === 'descend'))) return;
+  const now = sfx.now(), b = G.beat;
+  if (G.ck == null || G.ckT0 !== G.t0) { G.ckT0 = G.t0; G.ck = Math.max(0, Math.ceil((now - G.t0)/b)); }
+  while (G.t0 + G.ck*b < now + 0.12){
+    const t = G.t0 + G.ck*b, k = G.ck, tier = G.tier; G.ck++;
+    if (!SET.combo.busy || tier < 1 || t < now - 0.02) continue;
+    const walk = [110, 123.5, 130.8, 146.8, 164.8, 146.8, 130.8, 123.5];
+    sfx.via('music', () => {
+      for (let i = 1; i < 4; i++) if (i !== 2 || tier < 4) sfx.hat(t + i*b/4, 0.035);
+      if (tier >= 2) sfx.bass(t, walk[k % walk.length]);
+      if (tier >= 3 && k % 4 === 0) sfx.pad(t, [[220, 277.2, 329.6], [196, 246.9, 293.7], [174.6, 220, 261.6], [196, 246.9, 329.6]][(k >> 2) % 4], b*4);
+      if (tier >= 4) sfx.env(sfx.noiseSrc(t + b/2, 0.2, 'highpass', 6500), t + b/2, 0.002, 0.18, 0.12);
+    });
+  }
+}
 function gridDrums(){
   if (!G.endless || !G.useAC || !sfx.bus || !(sfx.ac && sfx.ac.state === 'running')) return;
   if (G.phase !== 'land' && G.phase !== 'finale' && G.phase !== 'descend') return;
@@ -676,7 +726,7 @@ function gridDrums(){
   if (G.gk == null) G.gk = Math.ceil((now - G.t0)/b);
   while (G.t0 + G.gk*b < now + 0.15){
     const t = G.t0 + G.gk*b, k = G.gk;
-    sfx.via('music', () => { if (k % 2 === 0){ sfx.kick(t, 1); sfx.bass(t, [110, 130.8, 146.8, 164.8][(k >> 1) % 4]); } else sfx.clap(t); sfx.hat(t, 0.06); sfx.hat(t + b/2, 0.04); });
+    sfx.via('music', () => { if (SET.layer.kick) sfx.kick4(t); if (k % 2 === 0){ if (!SET.layer.kick) sfx.kick(t, 1); sfx.bass(t, [110, 130.8, 146.8, 164.8][(k >> 1) % 4]); } else { if (SET.layer.snare) sfx.snare(t); else sfx.clap(t); } sfx.hat(t, 0.06); sfx.hat(t + b/2, 0.04); });
     G.gk++;
   }
 }
@@ -722,9 +772,9 @@ function nextLayer(){
   for (const sg of segs) sg.p = sg.p.map((v, i) => i % 2 ? v - dy : v);
   tip.path = tip.path.map(p => ({ x:p.x, y:p.y - dy })); tip.y -= dy; tip.py -= dy;
   const cloudY = (G.cloudY || 0) - dy;
-  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, idc:G.idc, t:G.t };
+  const keep = { perfect:G.perfect, good:G.good, miss:G.miss, wrong:G.wrong, off:G.off || 0, combo:G.combo, maxCombo:G.maxCombo, layer:G.layer + 1, idc:G.idc, t:G.t, pc:G.pc, tier:G.tier };
   newGame(G.lv, 'play');
-  Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo, idc:keep.idc, t:keep.t, cloudY });   // keep the clock: every old segment stays fully drawn
+  Object.assign(G, { perfect:keep.perfect, good:keep.good, miss:keep.miss, wrong:keep.wrong, off:keep.off, combo:keep.combo, maxCombo:keep.maxCombo, idc:keep.idc, t:keep.t, pc:keep.pc, tier:keep.tier, cloudY });   // keep the clock: every old segment stays fully drawn
   G.lstat = { perfect:keep.perfect, good:keep.good, off:keep.off, wrong:keep.wrong };
   applyLayer(keep.layer, ox);
   G.segs = segs; G.selected = true;
@@ -813,6 +863,7 @@ function strike(){
     const vc = victimObj(); vc.state = 'grateful'; vc.dir = Math.sign(v.x - vc.x) || 1; vc.thankT = 0;
     vc.hopTo = vc.x + Math.sign(vc.x - v.x)*0.8;   // a little hop away from the smoking villain
     for (let i = 0; i < 10; i++) G.parts.push({ x:vc.x, y:GROUND - 0.8, vx:rnd(-1.5, 1.5), vy:rnd(-3, -1), life:1.2, max:1.2, c:'#ff7a9a', sz:6, g:0, heart:true });
+    if (SET.combo.big && G.tier > 0){ G.shake = RM ? 0.12 : 0.9 + 0.25*G.tier; G.flash = 1; sfx.bigHit(G.tier); }
     worldText(v.x, GROUND - 3.4, G.power >= 25 ? '天罚！' : G.power >= 12 ? '焦了' : '麻了一下', '#ffc94a', 26);
   } else {
     v.state = 'flee'; v.dir = v.x >= w.x ? 1 : -1;
@@ -868,6 +919,17 @@ function showResult(){
 
 /* ---------------- effects ---------------- */
 function worldText(x, y, txt, c, sz){ G.texts.push({ x, y, txt, c, sz:sz || 18, life:1.6, max:1.6, world:true }); }
+// combo: only 真准 counts; every 4 in a row adds a tier (max 4); anything else drops straight back to 0
+const TIER_AT = [4, 8, 12, 16];
+function tierOf(n){ let t = 0; for (const a of TIER_AT) if (n >= a) t++; return t; }
+function comboHit(){
+  G.pc++; const nt = tierOf(G.pc);
+  if (nt > G.tier){ G.tier = nt; G.gold = 1; sfx.tierUp(nt); screenText(`连准 ${G.pc} · ${['', '一', '二', '三', '满'][nt]}档`, '#ffd76a', 22); }
+}
+function comboBreak(){
+  if (G.tier > 0){ sfx.tierDown(); screenText('连准断了', '#959bc8', 18); }
+  G.pc = 0; G.tier = 0;
+}
 function screenText(txt, c, sz){ G.texts = G.texts.filter(t => t.world || t.sy !== H*0.44); G.texts.push({ sx:W/2, sy:H*0.44, txt, c, sz:sz || 20, life:1.4, max:1.4, world:false }); }
 function tapText(sx, sy, txt, c){ G.texts.push({ sx, sy, txt, c, sz:17, life:0.7, max:0.7, world:false }); }
 function bigText(txt, c, life){ G.big = { txt, c, life:life || 0.8, max:life || 0.8 }; }
@@ -967,6 +1029,20 @@ for (const k of ['music', 'fx', 'strike']){
 }
 $('v_bpm').value = SET.bpm; $('l_bpm').textContent = SET.bpm;
 $('v_bpm').addEventListener('input', () => { SET.bpm = +$('v_bpm').value; $('l_bpm').textContent = SET.bpm; saveSettings(); });
+for (const k of ['tap', 'busy', 'big']){
+  const el = $('cb_' + k); el.checked = SET.combo[k];
+  el.addEventListener('change', () => { SET.combo[k] = el.checked; saveSettings(); });
+}
+for (const k of ['kick', 'snare', 'thick']){
+  const el = $('ly_' + k); el.checked = SET.layer[k];
+  el.addEventListener('change', () => {
+    SET.layer[k] = el.checked; saveSettings();
+    sfx.init(); if (!sfx.ac || !el.checked) return; const t = sfx.now(), b = 60/SET.bpm;
+    if (k === 'kick') sfx.via('music', () => { for (let i = 0; i < 4; i++) sfx.kick4(t + i*b); });
+    else if (k === 'snare') sfx.via('music', () => { sfx.snare(t + b); sfx.snare(t + 3*b); });
+    else sfx.via('fx', () => { sfx.leadDrum(t); sfx.leadDrum(t + b); });
+  });
+}
 $('skipIntro').checked = SET.skip;
 $('skipIntro').addEventListener('change', () => { SET.skip = $('skipIntro').checked; saveSettings(); });
 
@@ -995,7 +1071,7 @@ cv.addEventListener('pointerdown', e => {
   const [wx, wy] = tipPos(hit);
   if (hit === G.main){
     if (onBeat) rp.res = 'wrong';
-    G.wrong++; G.combo = 0; G.shake = RM ? 0 : 0.25;
+    G.wrong++; G.combo = 0; comboBreak(); G.shake = RM ? 0 : 0.25;
     sfx.pa(sfx.now(), false, false); sfx.dull();
     tapText(x, y - 28, '哎呀，点到大球了', '#ff4d5e');
     kill(hit); pickMain();
@@ -1003,10 +1079,11 @@ cv.addEventListener('pointerdown', e => {
   } else {
     if (onBeat){
       rp.res = perfect ? 'perfect' : 'good';
-      if (perfect) G.perfect++; else G.good++;
+      if (perfect){ G.perfect++; comboHit(); } else { G.good++; comboBreak(); }
       G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-    } else G.off = (G.off || 0) + 1;
+    } else { G.off = (G.off || 0) + 1; comboBreak(); }
     sfx.pa(sfx.now(), onBeat && rp.type === 'q', perfect);
+    if (perfect) sfx.tapLayer(sfx.now(), G.tier);
     tapText(x, y - 28, perfect ? '啪！真准' : onBeat ? '啪！' : '啪', perfect ? '#ffc94a' : '#bfe6ff');
     kill(hit); pickMain();
   }
@@ -1123,7 +1200,7 @@ function update(dt){
   }
   if (G.phase === 'land'){ G.lt += dt; if (G.endless ? nowClock() >= G.t0 + G.landK*G.beat : G.lt >= 2.35) startFinale(G.main); }
   if (G.phase === 'descend'){ G.ft += dt; updateDescend(dt); }
-  gridDrums();
+  gridDrums(); comboGrid();
   if (G.phase === 'finale' || G.phase === 'result'){
     G.ft += dt;
     if (!G.cracked && G.ft >= FIN.pause){ G.cracked = true; sfx.crack(); G.shake = RM ? 0 : 0.15; G.flash = 0.25; }
@@ -1141,7 +1218,7 @@ function update(dt){
   for (const t of G.texts) t.life -= dt;
   G.texts = G.texts.filter(t => t.life > 0);
   if (G.big){ G.big.life -= dt; if (G.big.life <= 0) G.big = null; }
-  G.flash *= Math.exp(-dt*4); G.shake = Math.max(0, G.shake - dt);
+  G.flash *= Math.exp(-dt*4); G.gold *= Math.exp(-dt*3); G.shake = Math.max(0, G.shake - dt);
   G.pulse *= Math.exp(-dt*7); G.cueFlash *= Math.exp(-dt*6);
   G.tint += ((G.phase === 'play' ? G.level : 0) - G.tint)*(1 - Math.exp(-dt*4));
   G.warm += (((G.phase === 'play' && G.inResp) ? 1 : 0) - G.warm)*(1 - Math.exp(-dt*6));
@@ -1208,6 +1285,7 @@ function render(){
   drawImpact();
   drawTexts(false);
   if (G.flash > 0.01){ ctx.fillStyle = `rgba(240,246,255,${G.flash*0.85})`; ctx.fillRect(0, 0, W, H); }
+  if (G.gold > 0.01){ const rg = ctx.createRadialGradient(W/2, H/2, Math.min(W, H)*0.25, W/2, H/2, Math.max(W, H)*0.75); rg.addColorStop(0, 'rgba(255,201,74,0)'); rg.addColorStop(1, `rgba(255,201,74,${0.45*G.gold})`); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H); }
 }
 // "听 / 跟！" cue with the round's pattern as dots
 function drawCue(){
