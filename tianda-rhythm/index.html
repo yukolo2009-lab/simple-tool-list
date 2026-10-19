@@ -114,6 +114,45 @@ canvas{position:fixed;inset:0;display:block}
 .mrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mrow .setbtn{font-size:13px;padding:9px 8px}
 .rline{white-space:pre-line}
+/* ---- map-style title screen: the game world itself, with a small card ---- */
+.mapui{position:fixed;inset:0;pointer-events:none;z-index:5}
+.mapui .mtitle{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 34px);text-align:center;display:grid;gap:6px;padding:0 16px}
+.mapui .mtitle h1{margin:0;font-family:var(--display);font-weight:800;font-size:46px;line-height:1;letter-spacing:.08em;color:var(--volt-hot);text-shadow:0 0 18px rgba(150,200,255,.7),0 0 2px #fff}
+.mapui .mtitle p{margin:0;font-size:13px;line-height:1.6;color:var(--mute)}
+.mapui .mtop{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;gap:8px;pointer-events:auto}
+.mapui .mtop button,.mapui .mrow2 button{font-family:var(--body);font-size:13px;font-weight:700;cursor:pointer;border-radius:999px;border:1px solid var(--line);background:rgba(10,12,29,.7);color:var(--ink);padding:6px 12px}
+.mapui .mcard{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:min(360px,calc(100% - 32px));box-sizing:border-box;padding:14px 16px;border-radius:18px;background:rgba(13,15,36,.88);border:1px solid var(--line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;gap:8px;pointer-events:auto;transition:opacity .25s,transform .25s}
+.mapui .mcard.fade{opacity:.35}
+.mapui .mreg{font-size:12px;color:var(--volt);letter-spacing:.08em}
+.mapui .mname{font-family:var(--display);font-size:20px;font-weight:800;color:var(--volt-hot)}
+.mapui .msub{font-size:13px;color:var(--mute);line-height:1.5}
+.mapui .mrow2{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.mapui .mrow2 .btn{font-size:20px;padding:10px 30px}
+.mapui .mrow2 .btn:disabled{opacity:.4}
+.mapui .mhint{position:absolute;left:0;right:0;text-align:center;font-size:12px;color:rgba(233,236,255,.5);bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}
+.help{z-index:19}
+/* ---- debug side panel ---- */
+.dbgtab{position:fixed;right:0;top:44%;z-index:31;writing-mode:vertical-rl;font-size:12px;font-weight:700;letter-spacing:.2em;padding:10px 5px;border-radius:10px 0 0 10px;border:1px solid var(--line);border-right:0;background:rgba(255,201,74,.9);color:#1b1400;cursor:pointer}
+.dbg{position:fixed;right:0;top:0;bottom:0;width:min(320px,88vw);z-index:30;box-sizing:border-box;padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 14px);background:rgba(8,10,24,.95);border-left:1px solid var(--line);overflow:auto;transform:translateX(102%);transition:transform .25s;touch-action:auto;display:grid;gap:8px;align-content:start}
+.dbg.open{transform:none}
+.dbg h3{margin:4px 0 0;font-size:13px;color:var(--amber);letter-spacing:.06em}
+.dbg .row{display:grid;gap:6px;padding:9px 10px;border-radius:12px;background:#12152e;border:1px solid var(--line)}
+.dbg .rtop{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink)}
+.dbg .rtop input[type=checkbox]{width:20px;height:20px;accent-color:var(--amber);flex:none;margin:0}
+.dbg .rtop span{flex:1;line-height:1.35}
+.dbg .rtop .try{font-size:12px;border-radius:8px;border:1px solid var(--line);background:#1b1f3f;color:var(--volt);padding:3px 8px;cursor:pointer}
+.dbg .note{font-size:11px;color:var(--mute);line-height:1.45}
+.dbg .vd{display:flex;gap:4px}
+.dbg .vd button{flex:1;font-size:12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--mute);padding:4px 0;cursor:pointer}
+.dbg .vd button.on.y{background:#2f6b2c;color:#fff;border-color:#2f6b2c}
+.dbg .vd button.on.n{background:#7a2a33;color:#fff;border-color:#7a2a33}
+.dbg .vd button.on.u{background:#3a3f6a;color:#fff;border-color:#3a3f6a}
+.dbg .sl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute)}
+.dbg .sl input{flex:1;accent-color:var(--amber)}
+.dbg .sl b{color:var(--amber);min-width:3.6em;text-align:right;font-variant-numeric:tabular-nums}
+.dbg .copy{font-family:var(--display);font-size:16px;font-weight:700;border:0;border-radius:12px;padding:11px;background:var(--amber);color:#1b1400;cursor:pointer}
+.dbg textarea{width:100%;box-sizing:border-box;min-height:160px;font-size:12px;background:#0d0f24;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px;user-select:text;-webkit-user-select:text}
+.dbg .ok{font-size:12px;color:#7fd17f;text-align:center;min-height:1.2em}
 @media (max-height:620px){.panel h1{font-size:40px}.grade{font-size:48px}}
 </style>
 
@@ -131,6 +170,37 @@ canvas{position:fixed;inset:0;display:block}
 <button class="sound" id="sound" hidden>音量</button>
 <button class="sound pausebtn" id="pauseBtn" hidden>暂停</button>
 
+<div class="mapui" id="mapui" hidden>
+  <div class="mtitle"><h1>天打雷劈</h1><p>喑年之后，雷声断了，大地失了节律。<br>闪电领拍，你来跟拍；跟准了，雷才会落下。</p></div>
+  <div class="mtop"><button id="mcHelp">玩法</button><button id="mcSet">设置</button></div>
+  <div class="mhint" id="mcHint">左右拨动大地选关</div>
+  <div class="mcard" id="mcard">
+    <div class="mreg" id="mcReg"></div>
+    <div class="mname" id="mcName"></div>
+    <div class="msub" id="mcSub"></div>
+    <div class="mrow2"><button id="mcCore">无限深渊</button><button class="btn" id="mcGo">开劈</button></div>
+  </div>
+</div>
+<section class="panel help" id="help" hidden>
+  <h2 style="margin:0;font-family:var(--display);font-size:22px;color:var(--volt-hot)">玩法</h2>
+  <ol class="how">
+    <li>点一下<b>目标</b>，再按<b>开劈</b></li>
+    <li>闪电敲低沉的“咚”时，<b>先听，别点</b></li>
+    <li>画面一暗就轮到你：小球外的<b>金色圆圈缩到和小球一样大</b>时点它</li>
+    <li><b>最大的球别点</b>，它在给闪电带路</li>
+    <li>连续“真准”会叠加节奏；头目要雷够粗才劈得倒</li>
+  </ol>
+  <p class="ver" id="verLine2"></p>
+  <button class="btn" id="helpOk">知道了</button>
+</section>
+<button class="dbgtab" id="dbgTab">调试</button>
+<aside class="dbg" id="dbg" aria-label="调试栏">
+  <div id="dbgList" style="display:grid;gap:8px"></div>
+  <button class="copy" id="dbgCopy">一键复制我的选择</button>
+  <div class="ok" id="dbgOk"></div>
+  <textarea id="dbgText" readonly hidden></textarea>
+</aside>
+
 <section class="panel" id="menu">
   <h1>天打雷劈</h1>
   <p class="sub">喑年之后，雷声断了，大地失了节律。<br>闪电领拍，你来跟拍；跟准了，雷才会落下。</p>
@@ -147,7 +217,7 @@ canvas{position:fixed;inset:0;display:block}
   </div>
   <button class="btn" id="startLv">开劈</button>
   <div class="mrow"><button class="setbtn" id="coreBtn">无限深渊</button><button class="setbtn" id="openSet">音量和设置</button></div>
-  <p class="ver">版本 10月19日 14:30 · 圆环大地、草原与湿地 12 关、地貌恢复</p>
+  <p class="ver">版本 10月19日 21:30 · 调试栏、圆环选关、领唱收尾、深渊蓄力</p>
 </section>
 
 <section class="panel settings" id="settings" hidden>
@@ -316,6 +386,13 @@ const sfx = {
   tierUp(n){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => { [0, 0.07, 0.14].forEach((d, i) => this.osc(t + d, 'triangle', 660*Math.pow(1.26, i + n - 1), 660*Math.pow(1.26, i + n - 1), 0.12, 0.002, 0.14, 0.14)); this.env(this.noiseSrc(t + 0.14, 0.3, 'highpass', 7000), t + 0.14, 0.002, 0.28, 0.12); }); },
   bigHit(tier){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => { this.osc(t, 'sine', 90, 30, 0.6 + 0.2*tier, 0.003, 0.7 + 0.2*tier, 0.5 + 0.15*tier); this.env(this.noiseSrc(t, 0.9, 'lowpass', 700), t, 0.004, 0.6 + 0.15*tier, 0.25 + 0.12*tier); if (tier >= 3) this.dong(t + 0.04); }); },
   tierDown(){ if (!this.ok()) return; const t = this.now(); this.via('fx', () => this.osc(t, 'sine', 520, 180, 0.22, 0.003, 0.24, 0.14)); },
+  // end-of-lead cue A: a choked cymbal + a low dip, like a drummer closing the phrase
+  cueA(t){ if (!this.ok()) return; this.env(this.noiseSrc(t, 0.06, 'highpass', 6500), t, 0.0008, 0.035, 0.55); this.env(this.noiseSrc(t, 0.05, 'bandpass', 3800, 1.4), t, 0.001, 0.03, 0.25); this.osc(t, 'sine', 150, 55, 0.14, 0.002, 0.16, 0.35); },
+  // end-of-lead cue B: a soft falling wood-block pair
+  cueB(t){ if (!this.ok()) return; this.osc(t + 0.06, 'triangle', 1250, 1180, 0.05, 0.001, 0.05, 0.16); this.osc(t + 0.18, 'triangle', 930, 880, 0.06, 0.001, 0.06, 0.14); },
+  // endless build-up: one roll stroke, and the final stab
+  rollHit(t, v){ if (!this.ok()) return; this.env(this.noiseSrc(t, 0.06, 'bandpass', 2400, 0.7), t, 0.001, 0.05, 0.12 + 0.4*v); this.osc(t, 'triangle', 220, 180, 0.04, 0.001, 0.04, 0.05 + 0.15*v); },
+  stab(t){ if (!this.ok()) return; this.osc(t, 'sine', 110, 40, 0.3, 0.002, 0.32, 1.0); this.osc(t, 'sawtooth', 220, 160, 0.12, 0.001, 0.14, 0.25); this.env(this.noiseSrc(t, 0.2, 'highpass', 3000), t, 0.001, 0.14, 0.6); this.env(this.noiseSrc(t, 0.12, 'bandpass', 1500, 0.8), t, 0.001, 0.1, 0.5); },
   bass(t, f){ if (!this.ok()) return; this.osc(t, 'triangle', f, f, 0.3, 0.005, 0.28, 0.42); },
   // lightning's turn: always 哆 (C5), plucky lead + a little electric fizz
   doNote(t){
@@ -527,6 +604,10 @@ const THANKS = {
 };
 const SET = { vol:{ music:1.0, fx:0.5, strike:0.1 }, skip:false, bpm:130, layer:{ kick:true, snare:true, thick:true }, combo:{ tap:true, busy:true, big:true } };   // defaults = the author's tuned settings
 try { const s0 = JSON.parse(localStorage.getItem('tdlp-rhythm-settings') || 'null'); if (s0){ Object.assign(SET.vol, s0.vol || {}); SET.skip = !!s0.skip; if (s0.layer) Object.assign(SET.layer, s0.layer); if (s0.combo) Object.assign(SET.combo, s0.combo); if (s0.bpm) SET.bpm = clamp(+s0.bpm, 60, 160); } } catch(e){}
+// debug / trial switches: everything still being decided lives here, with a verdict the player can copy back
+const DBG = { lastDim:true, cueA:true, cueB:false, build:true, buildBeats:8, mapUI:true, gift:true, family:true, verdict:{} };
+try { const d0 = JSON.parse(localStorage.getItem('tdlp-debug') || 'null'); if (d0){ Object.assign(DBG, d0); DBG.verdict = d0.verdict || {}; } } catch(e){}
+function saveDbg(){ try { localStorage.setItem('tdlp-debug', JSON.stringify(DBG)); } catch(e){} }
 function saveSettings(){ try { localStorage.setItem('tdlp-rhythm-settings', JSON.stringify(SET)); } catch(e){} }
 let best = {};
 try { best = JSON.parse(localStorage.getItem('tdlp-best12') || '{}') || {}; } catch(e){ best = {}; }
@@ -582,6 +663,7 @@ function buildSong(){
       G.calls.push({ t:(cs + h)*bt, type, r, i, acc });
       G.resps.push({ t:(rs + h)*bt, type, r, i, done:false, res:null });
       G.aev.push({ t:(cs + h)*bt, f:'lead' });
+      if (acc){ G.aev.push({ t:(cs + h)*bt, f:'cueA' }); G.aev.push({ t:(cs + h)*bt, f:'cueB' }); }
     });
     cur = rs + P.span;
   });
@@ -621,7 +703,7 @@ function scheduleAudio(now){
     if (e.t < now - 0.05) continue;
     sfx.out = sfx.bus ? sfx.bus[(e.f === 'lead' || e.f === 'ding' || e.f === 'swoosh') ? 'fx' : 'music'] : null;
     if (e.f === 'dong') sfx.dong(at); else if (e.f === 'qiang') sfx.qiang(at);
-    else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'kick4') sfx.kick4(at); else if (e.f === 'snare') sfx.snare(at); else if (e.f === 'clap') sfx.clap(at);
+    else if (e.f === 'kick') sfx.kick(at, e.a); else if (e.f === 'kick4') sfx.kick4(at); else if (e.f === 'cueA'){ if (DBG.cueA) sfx.via('fx', () => sfx.cueA(at)); } else if (e.f === 'cueB'){ if (DBG.cueB) sfx.via('fx', () => sfx.cueB(at)); } else if (e.f === 'snare') sfx.snare(at); else if (e.f === 'clap') sfx.clap(at);
     else if (e.f === 'hat') sfx.hat(at, e.a); else if (e.f === 'stick') sfx.stick(at, e.a);
     else if (e.f === 'bass') sfx.bass(at, e.a); else if (e.f === 'smallGong') sfx.smallGong(at);
     else if (e.f === 'do') sfx.doNote(at); else if (e.f === 'so') sfx.soNote(at); else if (e.f === 'la') sfx.laNote(at);
@@ -759,6 +841,7 @@ function judgeMiss(rp){
 
 /* ---------------- ending ---------------- */
 const DESCENT_BEATS = 4;
+const descentBeats = () => DBG.build ? clamp(Math.round(DBG.buildBeats), 4, 12) : DESCENT_BEATS;
 const nowClock = () => (sfx.ac && sfx.ac.state === 'running') ? sfx.now() : performance.now()/1000;
 // endless: keep a steady drum grid running through landing, strike and descent (no gaps between layers)
 // combo layer: the backing gets busier per tier — 16th hats, walking bass, a chord pad, offbeat open hats
@@ -770,6 +853,7 @@ function comboGrid(){
   while (G.t0 + G.ck*b < now + 0.12){
     const t = G.t0 + G.ck*b, k = G.ck, tier = G.tier; G.ck++;
     if (!SET.combo.busy || tier < 1 || t < now - 0.02) continue;
+    if (G.silT0 != null && t >= G.silT0 - 0.01 && t < G.silT1 - 0.01) continue;
     const walk = [110, 123.5, 130.8, 146.8, 164.8, 146.8, 130.8, 123.5];
     sfx.via('music', () => {
       for (let i = 1; i < 4; i++) if (i !== 2 || tier < 4) sfx.hat(t + i*b/4, 0.035);
@@ -786,6 +870,7 @@ function gridDrums(){
   if (G.gk == null) G.gk = Math.ceil((now - G.t0)/b);
   while (G.t0 + G.gk*b < now + 0.15){
     const t = G.t0 + G.gk*b, k = G.gk;
+    if (G.silT0 != null && t >= G.silT0 - 0.01 && t < G.silT1 - 0.01){ G.gk++; continue; }
     sfx.via('music', () => { if (SET.layer.kick) sfx.kick4(t); if (k % 2 === 0){ if (!SET.layer.kick) sfx.kick(t, 1); sfx.bass(t, [110, 130.8, 146.8, 164.8][(k >> 1) % 4]); } else { if (SET.layer.snare) sfx.snare(t); else sfx.clap(t); } sfx.hat(t, 0.06); sfx.hat(t + b/2, 0.04); });
     G.gk++;
   }
@@ -801,7 +886,17 @@ function startDescent(){
   // descent beats sit on the song's beat grid
   G.dBeat = G.beat; G.dUseAC = G.useAC;
   G.dT0 = G.t0 + Math.ceil((nowClock() - G.t0)/G.beat - 0.05)*G.beat; G.dK = -1;
-  G.deep = true; G.dK = 0; G.dive.a = PI/2; grow(G.dive, 2.6, Math.min(0.15, G.beat*0.4));   // surge right away, through the ground
+  G.dN = descentBeats(); G.dStep = 10.4/G.dN;
+  G.deep = true; G.dK = 0; G.dive.a = PI/2; grow(G.dive, G.dStep, Math.min(0.15, G.beat*0.4));   // surge right away, through the ground
+  G.lum = 1; G.silT0 = G.silT1 = null;
+  if (DBG.build && G.useAC && sfx.ok()){
+    // dim → a roll that gets denser → one beat of silence → a short stab → the next layer
+    const N = G.dN, bt = G.dBeat, T = G.dT0, d = Math.max(1, Math.round(N/4));
+    G.dimEnd = d; G.silT0 = T + (N - 1)*bt; G.silT1 = T + N*bt;
+    for (let k = d; k < N - 1; k++){ const f = (k - d)/Math.max(1, N - 2 - d), sub = f < 0.34 ? 2 : f < 0.67 ? 4 : 8;
+      for (let i = 0; i < sub; i++){ const t = T + (k + i/sub)*bt, v = clamp((k - d + i/sub)/Math.max(1, N - 1 - d), 0, 1); sfx.via('music', () => sfx.rollHit(t, v)); } }
+    sfx.via('fx', () => sfx.stab(G.silT0 + bt*0.5));
+  }
   if (!G.boomed){ G.boomed = true; sfx.boom(G.power/25); }
 }
 function updateDescend(dt){
@@ -814,17 +909,24 @@ function updateDescend(dt){
   const v = villain(); v.fv += 9*dt; v.fy += v.fv*dt; v.spin += dt*5; v.x += (c.x - v.x)*Math.min(1, dt*3);
   // the bolt drills down one step on every beat
   const k = Math.floor(b);
-  if (k !== G.dK && k >= 0 && k < DESCENT_BEATS){
+  const N = G.dN || DESCENT_BEATS;
+  if (k !== G.dK && k >= 0 && k < N){
     G.dK = k; G.pulse = 1;
     const m = G.dive; m.a = PI/2 + (Math.random() - 0.5)*0.7;
-    grow(m, 2.6, Math.min(0.15, G.dBeat*0.4));
-    sfx.via('fx', () => sfx.leadDrum(sfx.now()));
+    grow(m, G.dStep || 2.6, Math.min(0.15, G.dBeat*0.4));
+    if (!DBG.build || k < (G.dimEnd || 1)) sfx.via('fx', () => sfx.leadDrum(sfx.now()));
   }
-  if (b >= DESCENT_BEATS - 0.02) nextLayer();
+  if (DBG.build){
+    // the bolt fades out, then slowly comes back; the stab flashes it
+    const de = G.dimEnd || 1;
+    G.lum = b < de ? lerp(1, 0.18, clamp(b/de, 0, 1)) : b < N - 1 ? lerp(0.18, 1, clamp((b - de)/Math.max(0.5, N - 1 - de), 0, 1)) : 1;
+    if (!G.stabbed && b >= N - 0.5){ G.stabbed = true; G.flash = Math.max(G.flash, 0.55); G.shake = RM ? 0 : 0.3; }
+  } else G.lum = 1;
+  if (b >= N - 0.02) nextLayer();
 }
 function nextLayer(){
   const tip = G.dive, dy = tip.y, ox = tip.x;
-  const songT0 = G.dT0 + DESCENT_BEATS*G.dBeat, useAC = G.dUseAC;
+  const songT0 = G.dT0 + (G.dN || DESCENT_BEATS)*G.dBeat, useAC = G.dUseAC;
   // shift the whole world up so the drilling tip sits at the top of the new layer — nothing is thrown away
   cam.y -= dy;
   const segs = G.segs;
@@ -1102,7 +1204,8 @@ function drawProp(p, rr, b){
 function drawRing(){
   const th = ringAngle(), cur = Math.round(th/RING_SEG);
   const [cx, cy] = w2s(0, GROUND + RING_R), Rp = RING_R*cam.s;
-  for (let j = cur - 2; j <= cur + 2; j++){
+  const wide = G.phase === 'menu' && DBG.mapUI;
+  for (let j = cur - (wide ? 5 : 2); j <= cur + (wide ? 5 : 2); j++){
     const jj = (j + RING_N) % RING_N;   // it's a circle: slot -1 is slot 35
     const b = slotBiome(jj), B = BIOME[b], rr = slotRestore(jj);
     const d0 = (j - 0.5)*RING_SEG - th, d1 = (j + 0.5)*RING_SEG - th;
@@ -1114,12 +1217,12 @@ function drawRing(){
   }
   // scenery, standing on the ring and tilting with it
   for (const pass of [0, 1]){
-    for (let j = cur - 1; j <= cur + 1; j++){
+    for (let j = cur - (wide ? 4 : 1); j <= cur + (wide ? 4 : 1); j++){
       const jj = (j + RING_N) % RING_N, b = slotBiome(jj);
       for (const p of slotProps(jj)){
         if (!!p.back !== (pass === 0)) continue;
         const d = (j*RING_SEG - th) + p.s/RING_R;
-        if (Math.abs(d) > 0.2) continue;
+        if (Math.abs(d) > (wide ? 0.62 : 0.2)) continue;
         const wx = Math.sin(d)*RING_R, wy = GROUND + RING_R - Math.cos(d)*RING_R;
         const [sx, sy] = w2s(wx, wy); if (sx < -cam.s*4 || sx > W + cam.s*4) continue;
         const rr = restoreAt(jj, p.s);
@@ -1268,6 +1371,151 @@ $('giftSave').addEventListener('click', () => {
   try { const a = document.createElement('a'); a.href = url; a.download = `天打雷劈-谢礼-${String(G.lv + 1).padStart(2, '0')}.png`; document.body.appendChild(a); a.click(); a.remove(); } catch(e){}
 });
 
+
+/* ---------------- map-style title screen: the ring itself, zoomed out ---------------- */
+const MV = { drag:null, vel:0, lastSel:-1 };
+const mapOn = () => DBG.mapUI && G && G.phase === 'menu';
+const mapScale = () => Math.max(3, W/72);
+function mapSel(){ return clamp(Math.round(RING.theta/RING_SEG), 0, RING_N - 1); }
+function showMenu(){
+  if (DBG.mapUI){ $('menu').hidden = true; $('mapui').hidden = false; MV.lastSel = -1; refreshMapCard(true); }
+  else { $('mapui').hidden = true; $('menu').hidden = false; buildMenu(); }
+}
+function refreshMapCard(force){
+  const j = mapSel(); if (!force && j === MV.lastSel) return; MV.lastSel = j;
+  const reg = REGIONS[Math.floor(j/6)], L = LEVELS[j];
+  $('mcReg').textContent = `第${'一二三四五六'[Math.floor(j/6)]}区 · ${reg.name} · ${reg.gang}`;
+  if (!reg.open || !L || j >= NREG){ $('mcName').textContent = reg.name + ' · 迷雾未散'; $('mcSub').textContent = '这一片还看不清，敬请期待'; $('mcGo').disabled = true; }
+  else {
+    const ok = unlocked(j), b = best[j];
+    $('mcName').textContent = `${L.name} · ${L.title}`;
+    $('mcSub').textContent = !ok ? '还锁着：先劈完上一关' : `${L.villainName}欺负${L.victimName} · ${L.sub}${cleared.has(j) ? ' · 已恢复' : ' · 未恢复'}${b != null ? ` · 最高 ${b} 分` : ''}`;
+    $('mcGo').disabled = !ok;
+    // the selected level's cast walks on to its slot
+    if (G.lv !== j || G.phase !== 'menu') newGame(j, 'menu');
+  }
+  if (j >= NREG && G.lv < NREG) G.objs.forEach(o => o.hiddenMap = true);
+  const be = best[NREG]; $('mcCore').textContent = '无限深渊' + (be != null ? ` · ${be} 层` : '');
+}
+function mapSnap(target, dur){
+  RING.from = RING.theta; RING.to = clamp(target, 0, RING_N - 1)*RING_SEG; RING.t0 = performance.now()/1000; RING.dur = dur || 0.45;
+}
+function mapDown(e){
+  if (!mapOn()) return false;
+  MV.drag = { x0:e.clientX, th0:RING.theta, lx:e.clientX, lt:performance.now(), moved:false }; MV.vel = 0; RING.dur = 0;
+  $('mcard').classList.add('fade');
+  return true;
+}
+function mapMove(e){
+  if (!MV.drag || !mapOn()) return;
+  const d = MV.drag, now = performance.now(), dx = e.clientX - d.x0;
+  if (Math.abs(dx) > 6) d.moved = true;
+  const px = RING_R*cam.s;
+  RING.theta = clamp(d.th0 - dx/px, -0.4*RING_SEG, (RING_N - 0.6)*RING_SEG);
+  const dt = Math.max(1, now - d.lt); MV.vel = MV.vel*0.6 + (-(e.clientX - d.lx)/px/dt*1000)*0.4; d.lx = e.clientX; d.lt = now;
+}
+function mapUp(e){
+  if (!MV.drag) return; const d = MV.drag; MV.drag = null; $('mcard').classList.remove('fade');
+  if (!d.moved){
+    // a tap on a neighbouring slot rotates to it
+    const off = (e.clientX - W/2)/(RING_R*cam.s);
+    const j = Math.round((RING.theta + off)/RING_SEG);
+    if (j !== mapSel()){ mapSnap(j, 0.55); sfx.init(); if (sfx.ok()) sfx.via('fx', () => sfx.swoosh(sfx.now(), 0.5)); }
+    return;
+  }
+  const j = Math.round((RING.theta + MV.vel*0.22)/RING_SEG);
+  mapSnap(j, clamp(0.3 + Math.abs(j*RING_SEG - RING.theta)*6, 0.3, 0.9));
+}
+addEventListener('pointermove', mapMove); addEventListener('pointerup', mapUp); addEventListener('pointercancel', mapUp);
+// markers above each slot + fog over the parts of the world that are still closed
+function drawMapMarks(){
+  if (!mapOn()) return;
+  const th = ringAngle(), cur = Math.round(th/RING_SEG), [cx, cy] = w2s(0, GROUND + RING_R), Rp = RING_R*cam.s, now = performance.now()/1000;
+  for (let j = cur - 4; j <= cur + 4; j++){
+    if (j < 0 || j >= RING_N) continue;
+    const reg = REGIONS[Math.floor(j/6)], open = reg.open && j < NREG, ok = open && unlocked(j), done = cleared.has(j);
+    const d = j*RING_SEG - th, a0 = -PI/2 + d - RING_SEG/2, a1 = a0 + RING_SEG;
+    if (!ok){
+      // grey veil: locked levels dim, closed worlds in fog
+      ctx.fillStyle = open ? 'rgba(14,16,30,0.55)' : 'rgba(40,44,60,0.72)';
+      ctx.beginPath(); ctx.arc(cx, cy, Rp + cam.s*18, a0, a1); ctx.arc(cx, cy, Rp - cam.s*3, a1, a0, true); ctx.closePath(); ctx.fill();
+    }
+    const mx = cx + Math.cos(-PI/2 + d)*(Rp + 62), my = cy + Math.sin(-PI/2 + d)*(Rp + 62), sel = j === mapSel() && !MV.drag && !ringBusy();
+    ctx.save(); ctx.translate(mx, my); ctx.rotate(d);
+    if (sel){ ctx.strokeStyle = `rgba(255,215,106,${0.55 + 0.35*Math.sin(now*4)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 17 + Math.sin(now*4)*1.5, 0, 2*PI); ctx.stroke(); }
+    ctx.fillStyle = done ? '#ffd76a' : ok ? '#bfe6ff' : '#4a4e5c'; ctx.beginPath(); ctx.arc(0, 0, sel ? 10 : 7, 0, 2*PI); ctx.fill();
+    if (LEVELS[j] && LEVELS[j].boss && open){ ctx.strokeStyle = done ? '#ffd76a' : '#e9ecff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 13, 0, 2*PI); ctx.stroke(); }
+    ctx.fillStyle = ok || done ? '#0b0c1c' : '#c8ccd8'; ctx.font = `700 ${sel ? 11 : 9}px ${FONT_B}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ok || done ? String(j + 1) : '锁', 0, 0.5); ctx.textBaseline = 'alphabetic';
+    if (j % 6 === 0 && Math.abs(d) < RING_SEG*3.5){ ctx.fillStyle = reg.open ? 'rgba(191,230,255,0.75)' : 'rgba(200,204,216,0.5)'; ctx.font = `600 12px ${FONT_B}`; ctx.fillText(reg.name, 0, -26); }
+    ctx.restore();
+  }
+}
+$('mcGo').addEventListener('click', () => { const j = mapSel(); if (j < NREG && unlocked(j) && !ringBusy()){ $('mapui').hidden = true; startLevel(j); } });
+$('mcCore').addEventListener('click', () => { $('mapui').hidden = true; startLevel(NREG); });
+$('mcSet').addEventListener('click', () => openSettings());
+$('mcHelp').addEventListener('click', () => { $('verLine2').textContent = document.querySelector('#menu .ver').textContent; $('help').hidden = false; });
+$('helpOk').addEventListener('click', () => { $('help').hidden = true; });
+
+/* ---------------- debug side panel ---------------- */
+const DBG_ITEMS = [
+  { grp:'新功能 · 待你定' },
+  { key:'lastDim', label:'领唱最后一下立即变暗', note:'最后一下“咚”的同时画面变暗，提示轮到你' },
+  { key:'cueA', label:'收尾提示音 A · 闷镲收音', note:'最后一下叠一声按住的短镲 + 低音下沉', test:() => sfx.cueA(sfx.now() + 0.05) },
+  { key:'cueB', label:'收尾提示音 B · 木鱼双响', note:'最后一下后面一声轻的“嗒·哒”', test:() => sfx.cueB(sfx.now() + 0.05) },
+  { key:'build', label:'无限深渊 · 裂地后的蓄力段', note:'变暗 → 渐密滚奏、渐亮 → 一拍静音 → 短促重音 → 下一层' },
+  { key:'buildBeats', label:'蓄力长度', slider:[4, 12, 1], unit:'拍', get:() => DBG.buildBeats, set:v => { DBG.buildBeats = v; } },
+  { key:'bpm', label:'节拍速度', slider:[60, 160, 2], unit:'拍/分', get:() => SET.bpm, set:v => { SET.bpm = v; $('v_bpm').value = v; $('l_bpm').textContent = v; saveSettings(); }, note:'下一局开始生效' },
+  { key:'mapUI', label:'圆环地图式标题界面', note:'关掉 = 回到原来的菜单面板，方便对比', after:() => { if (G.phase === 'menu') showMenu(); } },
+  { grp:'已上线 · 等你确认' },
+  { key:'kick', label:'低音鼓（每拍一下）', obj:() => SET.layer, save:saveSettings },
+  { key:'snare', label:'反拍军鼓（2、4 拍）', obj:() => SET.layer, save:saveSettings },
+  { key:'thick', label:'更厚的闪电“咚”', obj:() => SET.layer, save:saveSettings },
+  { key:'tap', label:'连准 · 击打声变厚', obj:() => SET.combo, save:saveSettings },
+  { key:'busy', label:'连准 · 背景节奏变密', obj:() => SET.combo, save:saveSettings },
+  { key:'big', label:'连准 · 最后一击更响', obj:() => SET.combo, save:saveSettings },
+  { key:'gift', label:'谢礼卡' },
+  { key:'family', label:'小动物一家' },
+];
+const VD = [['y', '采纳'], ['n', '不采纳'], ['u', '未定']];
+function vkey(it){ return (it.obj ? 'set.' : '') + it.key; }
+function buildDbg(){
+  let html = '';
+  DBG_ITEMS.forEach((it, i) => {
+    if (it.grp){ html += `<h3>${it.grp}</h3>`; return; }
+    const v = DBG.verdict[vkey(it)] || 'u';
+    let top;
+    if (it.slider){ const [a, b, st] = it.slider; top = `<div class="rtop"><span>${it.label}</span></div><div class="sl"><input type="range" min="${a}" max="${b}" step="${st}" value="${it.get()}" data-i="${i}" class="dsl"><b id="dslv${i}">${it.get()} ${it.unit}</b></div>`; }
+    else { const on = it.obj ? it.obj()[it.key] : DBG[it.key]; top = `<div class="rtop"><input type="checkbox" data-i="${i}" class="dck" ${on ? 'checked' : ''}><span>${it.label}</span>${it.test ? `<button class="try" data-i="${i}">试听</button>` : ''}</div>`; }
+    html += `<div class="row">${top}${it.note ? `<div class="note">${it.note}</div>` : ''}<div class="vd">${VD.map(([k, t]) => `<button data-i="${i}" data-v="${k}" class="${k}${v === k ? ' on ' + k : ''}">${t}</button>`).join('')}</div></div>`;
+  });
+  $('dbgList').innerHTML = html;
+  $('dbgList').querySelectorAll('.dck').forEach(el => el.addEventListener('change', () => { const it = DBG_ITEMS[+el.dataset.i]; if (it.obj){ it.obj()[it.key] = el.checked; it.save(); syncSettingBoxes(); } else { DBG[it.key] = el.checked; saveDbg(); } if (it.after) it.after(); }));
+  $('dbgList').querySelectorAll('.dsl').forEach(el => el.addEventListener('input', () => { const it = DBG_ITEMS[+el.dataset.i]; it.set(+el.value); saveDbg(); $('dslv' + el.dataset.i).textContent = `${el.value} ${it.unit}`; }));
+  $('dbgList').querySelectorAll('.try').forEach(el => el.addEventListener('click', () => { sfx.init(); if (sfx.ok()) sfx.via('fx', DBG_ITEMS[+el.dataset.i].test); }));
+  $('dbgList').querySelectorAll('.vd button').forEach(el => el.addEventListener('click', () => { const it = DBG_ITEMS[+el.dataset.i]; DBG.verdict[vkey(it)] = el.dataset.v; saveDbg(); buildDbg(); }));
+}
+function syncSettingBoxes(){ for (const k of ['kick', 'snare', 'thick']){ const el = $('ly_' + k); if (el) el.checked = SET.layer[k]; } for (const k of ['tap', 'busy', 'big']){ const el = $('cb_' + k); if (el) el.checked = SET.combo[k]; } }
+function dbgText(){
+  const d = new Date(), lines = [`【调试结果 ${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}】`];
+  let n = 0;
+  DBG_ITEMS.forEach(it => {
+    if (it.grp){ lines.push('— ' + it.grp); return; }
+    n++; const v = { y:'采纳', n:'不采纳', u:'未定' }[DBG.verdict[vkey(it)] || 'u'];
+    const state = it.slider ? `${it.get()} ${it.unit}` : ((it.obj ? it.obj()[it.key] : DBG[it.key]) ? '开' : '关');
+    lines.push(`${n}. ${it.label}：${state} · ${v}`);
+  });
+  return lines.join('\n');
+}
+$('dbgTab').addEventListener('click', () => { const o = $('dbg').classList.toggle('open'); if (o) buildDbg(); $('dbgTab').textContent = o ? '收起' : '调试'; });
+$('dbgCopy').addEventListener('click', async () => {
+  const txt = dbgText(); let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(txt); ok = true; } } catch(e){}
+  if (!ok){ try { const ta = $('dbgText'); ta.hidden = false; ta.value = txt; ta.focus(); ta.select(); ok = document.execCommand && document.execCommand('copy'); } catch(e){} }
+  const ta = $('dbgText'); ta.hidden = false; ta.value = txt;
+  $('dbgOk').textContent = ok ? '已复制，直接粘贴给 Claude 就行' : '这个浏览器不让自动复制：长按下面的文字全选复制';
+});
+
 /* ---------------- UI wiring ---------------- */
 let hintText = '';
 function setHint(t){ if (t !== hintText){ hintText = t; $('hint').textContent = t; } }
@@ -1285,7 +1533,7 @@ function startLevel(i, roll){
   sfx.init(); sfx.loadSamples(); sfx.stopBeds(0.2);
   if (i < NREG){ MAP.sel = i; if (roll){ RING.from = RING.theta; RING.to = i*RING_SEG; RING.t0 = performance.now()/1000; RING.dur = 1.6; if (sfx.ok()) sfx.via('fx', () => sfx.swoosh(sfx.now(), 1.4)); } else { RING.theta = RING.to = i*RING_SEG; RING.dur = 0; } }
   newGame(i, 'select');
-  $('menu').hidden = true; $('result').hidden = true;
+  $('menu').hidden = true; $('mapui').hidden = true; $('result').hidden = true;
   $('hud').hidden = false; $('bottom').hidden = false; $('sound').hidden = false; $('pauseBtn').hidden = false; $('pause').hidden = true;
   $('lvName').textContent = G.L.name + ' · ' + G.L.title; $('tgName').textContent = G.endless ? `第 1 层 · ${layerBpm(0)} 拍/分 · ${G.cast.villainName}欺负${G.cast.victimName}` : '节奏：' + G.L.sub; $('progMax').textContent = String(rounds().length);
   $('go').hidden = true; $('bottom').classList.add('mid'); setHint('点一下目标');
@@ -1322,8 +1570,8 @@ $('rAgain').addEventListener('click', () => startLevel(G.lv));
 $('rNext').addEventListener('click', () => { if (G.endless){ startLevel(G.lv); return; } const n = G.lv + 1; if (n < NREG && unlocked(n)) startLevel(n, true); else toMenu(); });
 function toMenu(){
   if (G.paused) unpause(true);
-  sfx.stopBeds(0.2); newGame(G.lv, 'menu'); buildMenu();
-  $('result').hidden = true; $('pause').hidden = true; $('menu').hidden = false; $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
+  sfx.stopBeds(0.2); const back = G.lv < NREG ? G.lv : mapSel(); RING.theta = back*RING_SEG; RING.dur = 0; newGame(back, 'menu'); buildMenu();
+  $('result').hidden = true; $('pause').hidden = true; showMenu(); $('hud').hidden = true; $('bottom').hidden = true; $('pauseBtn').hidden = true;
 }
 $('rMenu').addEventListener('click', toMenu);
 function openPause(title, text, canResume){
@@ -1383,6 +1631,7 @@ $('skipIntro').checked = SET.skip;
 $('skipIntro').addEventListener('change', () => { SET.skip = $('skipIntro').checked; saveSettings(); });
 
 cv.addEventListener('pointerdown', e => {
+  if (mapDown(e)) return;
   const x = e.clientX, y = e.clientY;
   if (G.phase === 'select'){
     if (ringBusy()) return;
@@ -1433,6 +1682,7 @@ function tipPos(t){
 
 /* ---------------- update ---------------- */
 function camTarget(){
+  if (G.phase === 'menu' && DBG.mapUI){ const s = mapScale(); return { x:0, y:GROUND - 0.08*H/s, s, sp:4 }; }
   if (G.endless && (G.phase === 'land' || G.phase === 'finale' || G.phase === 'descend')){
     if (G.phase === 'finale' && G.rb && G.ft < FIN.impact){
       const p = G.ft < FIN.climbEnd ? boltPointAt(climbFrac()) : boltPointAt(1 - downFrac());
@@ -1552,7 +1802,7 @@ function update(dt){
     if (!G.struck && G.ft >= FIN.impact){ G.struck = true; strike(); }
     if (!G.boomed && G.ft >= FIN.impact + 0.55){ G.boomed = true; sfx.boom(G.power/25); }
     if (G.endless && G.outcome === 'hit' && G.struck && G.phase === 'finale'){ startDescent(); }
-    else if (!G.shown && G.ft >= FIN.result){ G.shown = true; G.phase = 'result'; if (G.outcome === 'hit' && !G.endless && GIFTS[G.lv]) showGift(); else showResult(); }
+    else if (!G.shown && G.ft >= FIN.result){ G.shown = true; G.phase = 'result'; if (G.outcome === 'hit' && !G.endless && GIFTS[G.lv] && DBG.gift) showGift(); else showResult(); }
   }
   const ct = camTarget(), sp = ct.sp || (G.phase === 'zoomin' ? 3.2 : 5), k = 1 - Math.exp(-dt*sp);
   cam.x += (ct.x - cam.x)*k; cam.y += (ct.y - cam.y)*k;
@@ -1566,7 +1816,13 @@ function update(dt){
   G.pulse *= Math.exp(-dt*7); G.cueFlash *= Math.exp(-dt*6);
   G.tint += ((G.phase === 'play' ? G.level : 0) - G.tint)*(1 - Math.exp(-dt*4));
   G.warm += (((G.phase === 'play' && G.inResp) ? 1 : 0) - G.warm)*(1 - Math.exp(-dt*6));
-  G.dim = (G.dim || 0) + (((G.phase === 'play' && G.inResp) ? 1 : 0) - (G.dim || 0))*(1 - Math.exp(-dt*12));
+  let dimT = (G.phase === 'play' && G.inResp) ? 1 : 0;
+  if (DBG.lastDim && G.phase === 'play' && !G.inResp && G.calls && G.calls.length){
+    // the last 咚 of a lead already darkens the screen — the darkness itself says "your turn"
+    const now = clock(), bi = barInfo(now);
+    if (bi.kind === 'call'){ const last = G.calls.filter(c => c.r === bi.r).reduce((m, c) => Math.max(m, c.t), -1); if (last >= 0 && now >= last - 0.01) dimT = 1; }
+  }
+  G.dim = (G.dim || 0) + (dimT - (G.dim || 0))*(1 - Math.exp(-dt*(dimT ? 22 : 12)));
   G.accFlash = (G.accFlash || 0)*Math.exp(-dt*5);
   updateHud();
 }
@@ -1598,6 +1854,7 @@ function render(){
   if (G.scorch){ const [sx, sy] = w2s(G.scorch.x, G.endless ? GROUND : groundY(G.scorch.x)); const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, cam.s*1.6);
     rg.addColorStop(0, 'rgba(10,8,6,0.9)'); rg.addColorStop(1, 'rgba(10,8,6,0)'); ctx.save(); ctx.translate(sx, sy); ctx.scale(1, 0.25); ctx.translate(-sx, -sy); ctx.fillStyle = rg; circle(sx, sy, cam.s*1.6); ctx.restore(); }
   for (const o of G.objs) drawObj(o);
+  drawMapMarks();
   drawStreamers();
   if (G.phase === 'select' && !ringBusy()) drawSelectRing();
   drawSegs();
@@ -1772,6 +2029,7 @@ function drawSegs(){
       let w = (main ? 3 : 1.4)*zf;
       const inWin = G.winner && G.winner.lineage.includes(s.id);
       if (G.struck && G.phase !== 'descend') a *= 0.25 + strikeA;
+      if (G.phase === 'descend' && G.lum != null) a *= G.lum;
       if (G.phase === 'play' || G.phase === 'zoomin') a *= 0.72;   // the lead lightning is a little dimmer too
       if (G.cracked && !G.struck && !inWin) a *= 0.45;
       const frac = clamp((G.t - s.born)/(s.gd || 0.12), 0, 1);
@@ -2044,7 +2302,7 @@ function drawVillainArt(kind, look, moving, boss){
 function drawFamily(){
   const vc = victimObj(); if (!vc || !vc.victim) return;
   const safe = vc.state === 'grateful', back = Math.sign(vc.x - villain().x) || 1;   // always on the far side from the villain
-  const u = Math.max(cam.s*1.3, 24)*0.62;
+  const u = Math.max(cam.s*1.3, mapOn() ? 12 : 24)*0.62;
   for (let i = 0; i < 3; i++){
     const dx = back*(safe ? 0.9 + i*0.55 : 1.3 + i*0.6) + (safe ? Math.sin(G.t*2 + i)*0.05 : 0);
     const [sx, gy] = w2s(vc.x + dx, G.endless ? GROUND : groundY(vc.x + dx));
@@ -2054,11 +2312,12 @@ function drawFamily(){
   }
 }
 function drawObj(o){
-  if (o.kind === 'family'){ drawFamily(); return; }
-  if (ringBusy()) return;   // the next level's cast walks on once the ring stops
+  if (o.kind === 'family'){ if (DBG.family) drawFamily(); return; }
+  if (ringBusy() || (mapOn() && (MV.drag || o.hiddenMap))) return;   // the next level's cast walks on once the ring stops
   const [sx, gy] = w2s(o.x, (G.endless ? GROUND : groundY(o.x)) + (o.fy || 0));
   // villain: drawn ~1.7x bigger (never tiny on the overview), with a red glow, a ground halo and a bouncing tag
-  const u = o.villain ? Math.max(cam.s*VSCALE, 40)*(o.boss ? 1.25 : 1) : o.victim ? Math.max(cam.s*1.3, 24) : cam.s;
+  const mini = mapOn();   // on the world map the cast is shown at true scale, small
+  const u = o.villain ? Math.max(cam.s*VSCALE, mini ? 20 : 40)*(o.boss ? 1.25 : 1) : o.victim ? Math.max(cam.s*1.3, mini ? 12 : 24) : cam.s;
   if (o.kind !== 'pole' && (sx < -u*2 || sx > W + u*2)) return;
   if (o.villain){
     const look = villainLook(o);
@@ -2078,7 +2337,7 @@ function drawObj(o){
     ctx.scale(1/58, 1/58); ctx.translate(-64, -106);
     drawVillainArt(o.kind, look, moving, o.boss);
     ctx.restore();
-    if (look === 'idle' && G.phase !== 'result') drawVillainTag(sx, gy - u*1.6);
+    if (look === 'idle' && G.phase !== 'result' && G.phase !== 'menu') drawVillainTag(sx, gy - u*1.6);
     return;
   }
   const ch = o.state === 'char' || o.state === 'fall';
@@ -2092,7 +2351,7 @@ function drawObj(o){
   if (o.villain && !ch){ ctx.shadowColor = 'rgba(255,70,70,0.95)'; ctx.shadowBlur = 14; }
   const bob = o.state === 'idle' && o.villain ? Math.abs(Math.sin(G.t*(o.amp ? 9 : 3)))*0.06 : o.state === 'flee' ? Math.abs(Math.sin(G.t*18))*0.12 : 0;
   ctx.translate(0, -bob);
-  if (o.victim){ drawVictim(o); ctx.restore(); if (G.phase !== 'result' && o.state === 'scared') drawHelpBubble(sx, gy - u*1.1); if (o.state === 'grateful') drawThanksBubble(sx, gy - u*1.15, o); return; }
+  if (o.victim){ drawVictim(o); ctx.restore(); if (G.phase !== 'result' && G.phase !== 'menu' && o.state === 'scared') drawHelpBubble(sx, gy - u*1.1); if (o.state === 'grateful') drawThanksBubble(sx, gy - u*1.15, o); return; }
   if (o.villain && o.state === 'idle') ctx.translate((o.dir || 1)*Math.pow(Math.abs(Math.sin(G.t*3.2)), 4)*0.25, 0);
   if (o.kind === 'pole'){ drawPole(o, u); ctx.restore(); return; }
   if (o.kind === 'hen'){ drawHen(ch); ctx.restore(); return; }
@@ -2263,11 +2522,11 @@ function frame(now){
   const dt = Math.min(0.05, (now - last)/1000); last = now;
   if (G.hitStop > 0){ G.hitStop -= dt; G.flash = Math.max(G.flash, 0.6); }
   else if (!G.paused){ if (G.slowT > 0){ G.slowT -= dt; update(dt*0.3); } else update(dt); }
-  render(); drawMap(); requestAnimationFrame(frame);
+  render(); drawMap(); if (mapOn() && !MV.drag && !ringBusy()) refreshMapCard(); requestAnimationFrame(frame);
 }
 addEventListener('resize', resize);
 MAP.sel = firstOpen(); RING.theta = RING.to = MAP.sel*RING_SEG;
-newGame(MAP.sel, 'menu'); resize(); buildMenu();
+newGame(MAP.sel, 'menu'); resize(); buildMenu(); showMenu();
 requestAnimationFrame(frame);
 })();
 </script>
